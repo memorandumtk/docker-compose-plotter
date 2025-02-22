@@ -4,13 +4,24 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "tsc": "tsc",
+    "build": "tsc --outDir dist",
+    "exabuild": "node ./dist/bin/cli.js examples/nginx-golang/compose.yaml",
+    "makesvg": "npx  mmdc -i diagram.mmd -o output_diagram.svg",
+    "fortest": "npm run build && npm run exabuild && npm run makesvg && wslview output_diagram.svg",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "bin": {
+    "docker-compose-plotter": "./bin/cli.js"
+  },
   "keywords": [],
-  "author": "",
+  "author": "Kosuke Takagi",
   "license": "ISC",
   "dependencies": {
     "@mermaid-js/mermaid-cli": "^11.4.2",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.13.5",
+    "commander": "^13.1.0",
     "js-yaml": "^4.1.0"
   }
 }
