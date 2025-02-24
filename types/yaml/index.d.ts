@@ -12,8 +12,8 @@ export interface ComposeFileData {
       [key: string]: any; // Allow other optional properties
     };
   };
-  networks?: Network[],
-  volumes?: Volume[]
+  networks?: NetworkObject,
+  volumes?: VolumeObject
 }
 
 export type VolumeInContainer = string | {
@@ -29,9 +29,22 @@ export type BuildInContainer = string | {
   [key: string]: any
 }
 
-export type Network = string | [[networkName: string], { name?: string, driver?: string, [key: string]: any }]
+export type NetworkObject = {
+  [networkName: string]: {
+    name?: string;
+    driver?: string;
+    [key: string]: any;
+  };
+};
 
-export type Volume = string | [[volumeName: string], { driver?: string, external?: string, [key: string]: any }]
+
+export type VolumeObject = {
+  [volumeName: string]: {
+    driver?: string;
+    external?: string;
+    [key: string]: any
+  }
+}
 
 export type StyleClass =
   { color: string, fill: string }
