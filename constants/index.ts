@@ -1,0 +1,28 @@
+import type { StyleClass } from "../types/yaml"
+export const ARROWS_TO_RIGHT = {
+  inheritance: "--|>",
+  composition: "--*",
+  aggregation: "--o",
+  association: "-->",
+  solidlink: "--",
+  dependency: "..>",
+  realization: "..|>",
+  linkdashed: ".."
+}
+
+export const TWO_SPACES = "  "
+export const FOUR_SPACES = `${TWO_SPACES}${TWO_SPACES}`
+export const COLORS: Record<string, StyleClass> = {
+  container: {
+    fill: "#f00",
+    color: "#fff"
+  },
+  network: {
+    fill: "#0f0",
+    color: "#fff"
+  },
+  volume: {
+    fill: "#00f",
+    color: "#fff"
+  }
+}

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { parseComposeFile, generateMermaidDiagram, writeMermaidDiagramToFile } from "../lib";
+import { parseComposeFile } from "../lib/parse";
+import { generateMermaidDiagram, writeMermaidDiagramToFile } from "../lib/mermaid";
 import { program } from "commander";
 
 program
