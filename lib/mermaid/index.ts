@@ -1,127 +1,120 @@
-import * as fs from 'fs';
 import { ComposeFileData } from "../../types/yaml";
 import { ARROWS_TO_RIGHT, COLORS, FOUR_SPACES, TWO_SPACES } from '../../constants';
-
+import { putEscapeCharactersOnBothSide } from "../../utils";
 
 export function generateMermaidDiagram(composeObject: ComposeFileData): string {
-  const diagram: string[] = [];
-  // const config = `---\nconfig:\n${TWO_SPACES}theme: dark\n---`
-  // diagram.push(config)
-  diagram.push("classDiagram");
+  // Create a Map to hold different sections of the diagram.
+  const diagramSections = new Map<string, string[]>();
+  diagramSections.set("header", ["classDiagram"]);
+  diagramSections.set("services", []);
+  diagramSections.set("dependencies", []);
+  diagramSections.set("networks", []);
+  diagramSections.set("serviceNetworks", []);
+  diagramSections.set("volumes", []);
+  diagramSections.set("classDefinitions", []);
 
+  // Process services
   const servicesObject = composeObject.services || {};
-  const networksObject = composeObject.networks || {};
-  const volumesObject = composeObject.volumes || {};
+  Object.entries(servicesObject).forEach(([serviceName, serviceConfig]) => {
+    const serviceLines: string[] = [];
+    serviceLines.push(`${TWO_SPACES}class ${serviceName}:::container {`);
 
-  const services = Object.entries(servicesObject)
-  const networks = Object.entries(networksObject)
-  const volumes = Object.entries(volumesObject)
-
-  services.forEach(([serviceName, serviceConfig]) => {
-    const containerClassString: string[] = [];
-    containerClassString.push(`${TWO_SPACES}class ${serviceName}:::container {`);
-
-    // Include image or build
+    // Include image or build details
     if (serviceConfig.image) {
-      containerClassString.push(`${FOUR_SPACES}+image: ${serviceConfig.image}`);
+      serviceLines.push(`${FOUR_SPACES}+image: ${serviceConfig.image}`);
     } else if (serviceConfig.build) {
-      const buildObj = serviceConfig.build
-      let formattedString = ""
-      if (typeof buildObj === "string") {
-        formattedString = buildObj
+      if (typeof serviceConfig.build === "string") {
+        serviceLines.push(`${FOUR_SPACES}+build: ${serviceConfig.build}`);
       } else {
-        formattedString = Object.entries(buildObj).map(([key, value]) => {
-          return `${key}: ${value}`
-        }).join(', ')
-        // }
-        containerClassString.push(`${FOUR_SPACES}+build: ${formattedString}`);
+        const buildStr = Object.entries(serviceConfig.build)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join(', ');
+        serviceLines.push(`${FOUR_SPACES}+build: ${buildStr}`);
       }
     }
 
     // Include exposed ports
-    if (serviceConfig.ports) {
+    if (serviceConfig.ports && Array.isArray(serviceConfig.ports)) {
       serviceConfig.ports.forEach(port => {
-        containerClassString.push(`${FOUR_SPACES}+port: ${port}`);
+        serviceLines.push(`${FOUR_SPACES}+port: ${port}`);
       });
     }
+    serviceLines.push(`${TWO_SPACES}}`);
 
-    containerClassString.push("  }");
-    diagram.push(containerClassString.join("\n"));
+    // Add the service block to the "services" section
+    diagramSections.get("services")!.push(serviceLines.join("\n"));
 
-    // for dependencies
+    // Handle dependencies for the service
     if (serviceConfig.depends_on) {
-      if (typeof serviceConfig.depends_on === "string") {
-        diagram.push(`${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.composition} ${serviceConfig.depends_on}`);
-      } else if (typeof serviceConfig.depends_on.length) {
-        serviceConfig.depends_on.forEach((dependency: string) => {
-          diagram.push(`${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.composition} ${dependency}`);
+      if (Array.isArray(serviceConfig.depends_on)) {
+        serviceConfig.depends_on.forEach(dependency => {
+          diagramSections.get("dependencies")!.push(`${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.composition} ${putEscapeCharactersOnBothSide(dependency)}`);
         });
-      }
-    };
-  });
-
-  // for networks
-  networks.forEach(network => {
-    if (network) {
-      if (typeof network === "string") {
-        diagram.push(`${TWO_SPACES}class ${network}::: network { }`);
-      } else {
-        diagram.push(`${TWO_SPACES}class ${network[0]}::: network { }`);
+      } else if (typeof serviceConfig.depends_on === "string") {
+        diagramSections.get("dependencies")!.push(`${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.composition} ${putEscapeCharactersOnBothSide(serviceConfig.depends_on)}`);
       }
     }
   });
 
-  services.forEach(([serviceName, serviceConfig]) => {
-    if (serviceConfig.networks) {
+  // Process networks defined at the root of the compose file
+  const networksObject = composeObject.networks || {};
+  Object.entries(networksObject).forEach(([networkName]) => {
+    diagramSections.get("networks")!.push(`${TWO_SPACES}class ${networkName}:::network { }`);
+  });
+
+  // Process service-specific networks
+  Object.entries(servicesObject).forEach(([serviceName, serviceConfig]) => {
+    console.log({ network: serviceConfig.networks })
+    if (serviceConfig.networks && Array.isArray(serviceConfig.networks)) {
       serviceConfig.networks.forEach((network: string) => {
-        diagram.push(`${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.solidlink} ${network}`);
+        diagramSections.get("serviceNetworks")!.push(`${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.solidlink} ${putEscapeCharactersOnBothSide(network)}`);
       });
     }
   });
 
-  // for volumes
-  volumes.forEach(volume => {
-    if (volume) {
-      if (typeof volume === "string") {
-        diagram.push(`${TWO_SPACES}class ${volume}:::volume { }`);
-      } else {
-        diagram.push(`${TWO_SPACES}class ${volume[0]}:::volume { }`);
-      }
+  // Process volumes defined at the root
+  const volumesObject = composeObject.volumes || {};
+  Object.entries(volumesObject).forEach(([volumeName]) => {
+    diagramSections.get("volumes")!.push(`${TWO_SPACES}class ${volumeName}:::volume { }`);
+  });
+
+  // Process service-specific volumes
+  Object.entries(servicesObject).forEach(([serviceName, serviceConfig]) => {
+    if (serviceConfig.volumes && Array.isArray(serviceConfig.volumes)) {
+      serviceConfig.volumes.forEach((volume) => {
+        if (typeof volume === "string") {
+          if (diagramSections.get("services")) console.log({ servs: diagramSections.get("services") })
+          diagramSections.get("volumes")!.push(`${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.association} ${putEscapeCharactersOnBothSide(volume)}`);
+        } else {
+          // If volume is an object, format the key-value pairs.
+          const volumeStr = Object.entries(volume)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(', ');
+          diagramSections.get("volumes")!.push(`${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.association} ${putEscapeCharactersOnBothSide(volumeStr)}`);
+        }
+      });
     }
   });
 
-  services.forEach(([serviceName, serviceConfig]) => {
-    if (serviceConfig.volumes) {
-      const volumesValue = serviceConfig.volumes
-      let formattedString = ""
-      if (typeof volumesValue === "string") {
-        formattedString = volumesValue
-        diagram.push(`${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.association} ${volumesValue}`);
-      } else {
-        formattedString = Object.entries(volumesValue).map(([key, value]) => {
-          return `${key}: ${value}`
-        }).join(', ')
-      }
-    }
-  });
+  // Define class styling
+  const classDefinitions = [
+    `${TWO_SPACES}classDef container fill:${COLORS.container.fill},color:${COLORS.container.color}`,
+    `${TWO_SPACES}classDef network fill:${COLORS.network.fill},color:${COLORS.network.color}`,
+    `${TWO_SPACES}classDef volume fill:${COLORS.volume.fill},color:${COLORS.volume.color}`
+  ];
+  diagramSections.set("classDefinitions", classDefinitions);
 
-  const classDifForContainer = `${TWO_SPACES}classDef container fill:${COLORS.container.fill},color${COLORS.container.color}`
-  const classDifForNetwork = `${TWO_SPACES}classDef network fill:${COLORS.network.fill},color${COLORS.network.color}`
-  const classDifForVolume = `${TWO_SPACES}classDef volume fill:${COLORS.volume.fill},color${COLORS.volume.color}`
+  // Build the final diagram by concatenating sections in the desired order.
+  const finalDiagram = [
+    ...diagramSections.get("header")!,
+    ...diagramSections.get("services")!,
+    ...diagramSections.get("dependencies")!,
+    ...diagramSections.get("networks")!,
+    ...diagramSections.get("serviceNetworks")!,
+    ...diagramSections.get("volumes")!,
+    ...diagramSections.get("classDefinitions")!
+  ].join("\n");
 
-  diagram.push(classDifForContainer)
-  diagram.push(classDifForNetwork)
-  diagram.push(classDifForVolume)
-
-  return diagram.join("\n");
+  return finalDiagram;
 }
 
-
-export const writeMermaidDiagramToFile = (diagramText: string) => {
-  const FILENAME = "diagram.mmd";
-  try {
-    fs.writeFileSync(FILENAME, diagramText);
-  } catch (e) {
-    throw new Error(`Failed to write data to a file: ${FILENAME}`)
-  }
-}
