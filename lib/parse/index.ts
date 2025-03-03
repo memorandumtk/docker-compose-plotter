@@ -6,7 +6,6 @@ export const parseComposeFile = (filePath: string): ComposeFileData => {
   try {
     const fileContents = fs.readFileSync(filePath, 'utf8');
     const data = yaml.load(fileContents);
-    console.log(data)
     if (!data) {
       console.log({ notExpectedDataType: data })
       throw new Error("data's type was not expected.")

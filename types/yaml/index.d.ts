@@ -5,7 +5,7 @@ export interface ComposeFileData {
     [serviceName: string]: {
       image?: string;
       build?: BuildInContainer;
-      depends_on?: string[] | string;
+      depends_on?: string[];
       ports?: string[];
       networks?: string[];
       volumes?: VolumeInContainer[];

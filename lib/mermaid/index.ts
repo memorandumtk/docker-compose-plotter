@@ -2,166 +2,141 @@ import { ComposeFileData } from "../../types/yaml";
 import { ARROWS_TO_RIGHT, COLORS, FOUR_SPACES, TWO_SPACES } from '../../constants';
 import { putEscapeCharactersOnBothSide } from "../../utils";
 
-export function generateMermaidDiagram(composeObject: ComposeFileData): string {
-  // Create a Map to hold different sections of the diagram.
-  const diagramSections = new Map<string, string[]>();
-  diagramSections.set("header", []);
-  diagramSections.set("services", []);
-  diagramSections.set("dependencies", []);
-  diagramSections.set("networks", []);
-  diagramSections.set("serviceNetworks", []);
-  diagramSections.set("serviceVolumes", []);
-  diagramSections.set("volumes", []);
-  diagramSections.set("classDefinitions", []);
+export class ComposeMermaidGenerator {
+  private composeData: ComposeFileData;
+  private header: string[] = [];
+  private classDefinitions: string[] = [];
+  private relationships: Map<string, string> = new Map();
+  private containers: Map<string, string[]> = new Map();
+  private networks: Map<string, string[]> = new Map();
+  private volumes: Map<string, string[]> = new Map();
 
-  const _makeHeader = () => {
-    const arrayForHeader = []
-    if (composeObject.name) {
-      arrayForHeader.push(`---\ntitle: ${composeObject.name}\n---\nclassDiagram`)
-    } else {
-      arrayForHeader.push("classDiagram")
-    }
-    diagramSections.get("header")?.push(arrayForHeader.join())
+  constructor(baseCompose: ComposeFileData, overrideCompose?: ComposeFileData) {
+    this.composeData = baseCompose;
+    this.processData();
   }
-  _makeHeader()
 
-  // Process services
-  const servicesObject = composeObject.services || {};
-  const mapObjectForServices: Map<string, string[]> = new Map();
-  Object.entries(servicesObject).forEach(([serviceName, serviceConfig]) => {
-    const serviceLines: string[] = [];
-    serviceLines.push(`${TWO_SPACES}class ${serviceName}:::container {`);
+  private makeHeader(): string[] {
+    return this.composeData.name
+      ? [`---`, `title: ${this.composeData.name}`, `---`, `classDiagram`]
+      : ['classDiagram'];
+  }
 
-    // Include image or build details
+  private processData(): void {
+    const { services = {}, networks = {}, volumes = {} } = this.composeData;
+    this.header = this.makeHeader();
+
+    // Process services and their relationships
+    Object.entries(services).forEach(([serviceName, serviceConfig]) => {
+      const serviceClass = this.buildServiceClass(serviceName, serviceConfig);
+      this.containers.set(serviceName, serviceClass);
+      this.processServiceRelationships(serviceName, serviceConfig);
+    });
+
+    // Process networks
+    Object.entries(networks).forEach(([networkName, networkConfig]) => {
+      this.networks.set(networkName, this.buildNetworkClass(networkName, networkConfig));
+    });
+
+    // Process volumes
+    Object.entries(volumes).forEach(([volumeName, volumeConfig]) => {
+      this.volumes.set(volumeName, this.buildVolumeClass(volumeName, volumeConfig));
+    });
+
+    // Define color styles for the classes
+    this.classDefinitions = [
+      `${TWO_SPACES}classDef container fill:${COLORS.container.fill},color:${COLORS.container.color}`,
+      `${TWO_SPACES}classDef network fill:${COLORS.network.fill},color:${COLORS.network.color}`,
+      `${TWO_SPACES}classDef volume fill:${COLORS.volume.fill},color:${COLORS.volume.color}`
+    ];
+  }
+
+  private buildServiceClass(serviceName: string, serviceConfig: any): string[] {
+    const lines: string[] = [`${TWO_SPACES}class ${serviceName}:::container {`];
     if (serviceConfig.image) {
-      serviceLines.push(`${FOUR_SPACES}+image: ${serviceConfig.image}`);
-    } else if (serviceConfig.build) {
-      if (typeof serviceConfig.build === "string") {
-        serviceLines.push(`${FOUR_SPACES}+build: ${serviceConfig.build}`);
-      } else {
-        const buildStr = Object.entries(serviceConfig.build)
-          .map(([key, value]) => `${key}: ${value}`)
-          .join(', ');
-        serviceLines.push(`${FOUR_SPACES}+build: ${buildStr}`);
-      }
+      lines.push(`${FOUR_SPACES}+image: ${serviceConfig.image}`);
     }
-
-    // Include exposed ports
-    if (serviceConfig.ports && Array.isArray(serviceConfig.ports)) {
-      serviceConfig.ports.forEach(port => {
-        serviceLines.push(`${FOUR_SPACES}+port: ${port}`);
+    if (serviceConfig.ports) {
+      serviceConfig.ports.forEach((port: string) => {
+        lines.push(`${FOUR_SPACES}+port: ${port}`);
       });
     }
-
-    // Store the service lines in the Map so you can later add more properties if needed.
-    mapObjectForServices.set(serviceName, serviceLines);
-
-    // Handle dependencies for the service
-    if (serviceConfig.depends_on) {
-      if (Array.isArray(serviceConfig.depends_on)) {
-        serviceConfig.depends_on.forEach(dependency => {
-          diagramSections.get("dependencies")!.push(
-            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.composition} ${putEscapeCharactersOnBothSide(dependency)}`
-          );
-        });
-      } else if (typeof serviceConfig.depends_on === "string") {
-        diagramSections.get("dependencies")!.push(
-          `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.composition} ${putEscapeCharactersOnBothSide(serviceConfig.depends_on)}`
-        );
-      }
-    }
-  });
-
-  // Process networks defined at the root of the compose file
-  const networksObject = composeObject.networks || {};
-  const mapObjectForNetworks: Map<string, string[]> = new Map();
-  if (networksObject) {
-    Object.entries(networksObject).forEach(([networkName, networkConfig]) => {
-
-      console.log({ networkName, networkConfig })
-      const networkLines: string[] = []
-      networkLines.push(`${TWO_SPACES}class ${networkName}:::network {`)
-      if (networkConfig.name) {
-        networkLines.push(`${FOUR_SPACES}+name: ${networkConfig.name}`)
-      }
-      if (networkConfig.driver) {
-        networkLines.push(`${FOUR_SPACES}+driver: ${networkConfig.driver}`)
-      }
-      networkLines.push(`${TWO_SPACES}}`)
-      mapObjectForNetworks.set(networkName, networkLines)
-    });
-    diagramSections.set("networks", [...mapObjectForNetworks.values()].flat())
-
-    // Process service-specific networks
-    Object.entries(servicesObject).forEach(([serviceName, serviceConfig]) => {
-      if (serviceConfig.networks && Array.isArray(serviceConfig.networks)) {
-        serviceConfig.networks.forEach((network: string) => {
-          diagramSections.get("serviceNetworks")!.push(
-            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.dependency} ${putEscapeCharactersOnBothSide(network)}`
-          );
-        });
-      }
-    });
+    lines.push(`${TWO_SPACES}}`);
+    return lines;
   }
 
-  // Process volumes defined at the root
-  const volumesObject = composeObject.volumes || {};
-  Object.entries(volumesObject).forEach(([volumeName]) => {
-    diagramSections.get("volumes")!.push(
-      `${TWO_SPACES}class ${volumeName}:::volume { }`
-    );
-  });
-
-  // Process service-specific volumes
-  Object.entries(servicesObject).forEach(([serviceName, serviceConfig]) => {
-    if (serviceConfig.volumes && Array.isArray(serviceConfig.volumes)) {
-      serviceConfig.volumes.forEach((volume) => {
-        let finalizedString = ""
+  private processServiceRelationships(serviceName: string, serviceConfig: any): void {
+    if (serviceConfig.depends_on) {
+      serviceConfig.depends_on.forEach((dependency: string) => {
+        this.relationships.set(
+          `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.composition} ${dependency}`,
+          `${TWO_SPACES}${serviceName} --* ${putEscapeCharactersOnBothSide(dependency)}`
+        );
+      });
+    }
+    if (serviceConfig.networks) {
+      serviceConfig.networks.forEach((network: string) => {
+        this.relationships.set(
+          `${TWO_SPACES}${serviceName} -- ${network}`,
+          `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.solidlink} ${network}`
+        );
+      });
+    }
+    if (serviceConfig.volumes) {
+      serviceConfig.volumes.forEach((volume: any) => {
         if (typeof volume === "string") {
-          // make a link if volume is linked to a volume config
-          // db-data:/var/lib/postgresql/data
-          const targetVolumeName = volume.split(':')[0]
-          Object.entries(volumesObject).some(([volumeName]) => volumeName === targetVolumeName)
-            ? diagramSections.get("serviceVolumes")?.push(`${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.linkdashed} ${putEscapeCharactersOnBothSide(targetVolumeName)}`)
-            : finalizedString = `+inner volume: ${FOUR_SPACES}+${volume}`
+          this.relationships.set(
+            `${TWO_SPACES}${serviceName} --o ${volume}`,
+            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.aggregation} ${putEscapeCharactersOnBothSide(volume)}`
+          );
         } else {
-          // If volume is an object, format the key-value pairs.
-          const volumeStr = Object.entries(volume)
-            .map(([key, value]) => `${key}: ${value}`)
-            .join(', ');
-          finalizedString = `${FOUR_SPACES}+${(volumeStr)}`
+          this.relationships.set(
+            `${TWO_SPACES}${serviceName} --o ${volume.source}`,
+            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.aggregation} ${putEscapeCharactersOnBothSide(volume.target)}`
+          );
         }
       });
     }
-  });
+  }
 
-  // Close service class blocks after all properties have been appended.
-  mapObjectForServices.forEach((lines, serviceName) => {
+  private buildNetworkClass(networkName: string, networkConfig: any): string[] {
+    const lines: string[] = [`${TWO_SPACES}class ${networkName}:::network {`];
+    if (networkConfig.name) {
+      lines.push(`${FOUR_SPACES}+name: ${networkConfig.name}`);
+    }
+    if (networkConfig.driver) {
+      lines.push(`${FOUR_SPACES}+driver: ${networkConfig.driver}`);
+    }
     lines.push(`${TWO_SPACES}}`);
-  });
+    return lines;
+  }
 
-  // Set the services section in diagramSections using the Map values converted to an array.
-  diagramSections.set("services", [...mapObjectForServices.values()].flat());
+  private buildVolumeClass(volumeName: string, volumeConfig: any): string[] {
+    // const lines: string[] = [`${TWO_SPACES}class ${volumeName}:::volume {`];
+    const lines: string[] = [`${TWO_SPACES}class ${volumeName} {`];
+    if (volumeConfig.external) {
+      lines.push(`${FOUR_SPACES}+external: ${volumeConfig.external}`);
+    }
+    if (volumeConfig.driver) {
+      lines.push(`${FOUR_SPACES}+driver: ${volumeConfig.driver}`);
+    }
+    lines.push(`${TWO_SPACES}}`);
+    return lines;
+  }
 
-  // Define class styling
-  const classDefinitions = [
-    `${TWO_SPACES}classDef container fill:${COLORS.container.fill},color:${COLORS.container.color}`,
-    `${TWO_SPACES}classDef network fill:${COLORS.network.fill},color:${COLORS.network.color}`,
-    `${TWO_SPACES}classDef volume fill:${COLORS.volume.fill},color:${COLORS.volume.color}`
-  ];
-  diagramSections.set("classDefinitions", classDefinitions);
+  public generateMermaidDiagram(): string {
+    const containersString = [...this.containers.values()].flat().join("\n");
+    const relationshipsString = [...this.relationships.values()].flat().join("\n");
+    const networksString = [...this.networks.values()].flat().join("\n");
+    const volumesString = [...this.volumes.values()].flat().join("\n");
 
-  // Build the final diagram by concatenating sections in the desired order.
-  const finalDiagram = [
-    ...diagramSections.get("header")!,
-    ...diagramSections.get("services")!,
-    ...diagramSections.get("dependencies")!,
-    ...diagramSections.get("networks")!,
-    ...diagramSections.get("serviceNetworks")!,
-    ...diagramSections.get("serviceVolumes")!,
-    ...diagramSections.get("volumes")!,
-    ...diagramSections.get("classDefinitions")!
-  ].join("\n");
-
-  return finalDiagram;
+    return [
+      ...this.header,
+      containersString,
+      relationshipsString,
+      networksString,
+      volumesString,
+      ...this.classDefinitions,
+    ].join("\n");
+  }
 }
