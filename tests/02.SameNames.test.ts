@@ -1,6 +1,6 @@
 import { ComposeMermaidGenerator } from '../lib/mermaid/index';
 
-describe('ComposeMermaidGenerator', () => {
+describe('SameNames', () => {
   let sampleCompose: any;
   let generator: ComposeMermaidGenerator;
   let diagram: string;

@@ -15,7 +15,7 @@ export class ComposeMermaidGenerator {
   constructor(baseCompose: ComposeFileData, overrideCompose?: ComposeFileData) {
     this.composeData = baseCompose;
     this.processData();
-    // console.dir(this.composeData, {depth: null})
+    // console.dir(this.composeData, { depth: null })
   }
 
   private makeHeader(): string[] {
@@ -43,6 +43,8 @@ export class ComposeMermaidGenerator {
       const serviceClass = this.buildServiceClass(serviceName, serviceConfig);
       this.containers.set(serviceName, serviceClass);
       this.processServiceRelationships(serviceName, serviceConfig);
+      // put "}" after all proccess for container (service) is done
+      this.containers.get(serviceName)?.push(`${TWO_SPACES}}`);
     });
 
     // Define color styles for the classes
@@ -63,7 +65,6 @@ export class ComposeMermaidGenerator {
         lines.push(`${FOUR_SPACES}+port: ${port}`);
       });
     }
-    lines.push(`${TWO_SPACES}}`);
     return lines;
   }
 
@@ -85,15 +86,24 @@ export class ComposeMermaidGenerator {
       });
     }
     if (serviceConfig.volumes) {
+      const inlineVolumes: string[] = []
       serviceConfig.volumes.forEach((volume: VolumeInContainer) => {
         if (typeof volume === "string") {
           const source = volume.split(":")[0]
           const target = volume.split(":")[1]
-          const name = this.volumes.has(source) ? `volume-${source}` : this.volumes.has(target) ? `volume${target}` : volume
-          this.relationships.set(
-            `${TWO_SPACES}${serviceName} --o ${name}`,
-            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.aggregation} ${putEscapeCharactersOnBothSide(name)}`
-          );
+          const setRelationshipOfVolume = (name: string) => {
+            this.relationships.set(
+              `${TWO_SPACES}${serviceName} --o ${name}`,
+              `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.aggregation} ${putEscapeCharactersOnBothSide(name)}`
+            );
+          }
+          if (this.volumes.has(source)) {
+            setRelationshipOfVolume(`volume-${source}`)
+          } else if (this.volumes.has(target)) {
+            setRelationshipOfVolume(`volume-${target}`)
+          } else {
+            inlineVolumes.push(`${FOUR_SPACES}+volumes: ${volume}`)
+          }
         } else {
           this.relationships.set(
             `${TWO_SPACES}${serviceName} --o ${volume.source}`,
@@ -101,6 +111,9 @@ export class ComposeMermaidGenerator {
           );
         }
       });
+      if (inlineVolumes.length > 0) {
+        this.containers.get(serviceName)?.push(inlineVolumes.join("\n"))
+      }
     }
   }
 
