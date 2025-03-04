@@ -1,6 +1,7 @@
-import { ComposeFileData } from "../../types/yaml";
+import { ComposeFileData, VolumeInContainer } from "../../types/yaml";
 import { ARROWS_TO_RIGHT, COLORS, FOUR_SPACES, TWO_SPACES } from '../../constants';
 import { putEscapeCharactersOnBothSide } from "../../utils";
+
 
 export class ComposeMermaidGenerator {
   private composeData: ComposeFileData;
@@ -14,6 +15,7 @@ export class ComposeMermaidGenerator {
   constructor(baseCompose: ComposeFileData, overrideCompose?: ComposeFileData) {
     this.composeData = baseCompose;
     this.processData();
+    // console.dir(this.composeData, {depth: null})
   }
 
   private makeHeader(): string[] {
@@ -26,21 +28,21 @@ export class ComposeMermaidGenerator {
     const { services = {}, networks = {}, volumes = {} } = this.composeData;
     this.header = this.makeHeader();
 
+    // Process networks
+    Object.entries(networks).forEach(([networkName, networkConfig]) => {
+      this.networks.set(`${networkName}`, this.buildNetworkClass(networkName, networkConfig));
+    });
+
+    // Process volumes
+    Object.entries(volumes).forEach(([volumeName, volumeConfig]) => {
+      this.volumes.set(`${volumeName}`, this.buildVolumeClass(volumeName, volumeConfig));
+    });
+
     // Process services and their relationships
     Object.entries(services).forEach(([serviceName, serviceConfig]) => {
       const serviceClass = this.buildServiceClass(serviceName, serviceConfig);
       this.containers.set(serviceName, serviceClass);
       this.processServiceRelationships(serviceName, serviceConfig);
-    });
-
-    // Process networks
-    Object.entries(networks).forEach(([networkName, networkConfig]) => {
-      this.networks.set(networkName, this.buildNetworkClass(networkName, networkConfig));
-    });
-
-    // Process volumes
-    Object.entries(volumes).forEach(([volumeName, volumeConfig]) => {
-      this.volumes.set(volumeName, this.buildVolumeClass(volumeName, volumeConfig));
     });
 
     // Define color styles for the classes
@@ -78,21 +80,24 @@ export class ComposeMermaidGenerator {
       serviceConfig.networks.forEach((network: string) => {
         this.relationships.set(
           `${TWO_SPACES}${serviceName} -- ${network}`,
-          `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.solidlink} ${network}`
+          `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.solidlink} network-${network}`
         );
       });
     }
     if (serviceConfig.volumes) {
-      serviceConfig.volumes.forEach((volume: any) => {
+      serviceConfig.volumes.forEach((volume: VolumeInContainer) => {
         if (typeof volume === "string") {
+          const source = volume.split(":")[0]
+          const target = volume.split(":")[1]
+          const name = this.volumes.has(source) ? `volume-${source}` : this.volumes.has(target) ? `volume${target}` : volume
           this.relationships.set(
-            `${TWO_SPACES}${serviceName} --o ${volume}`,
-            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.aggregation} ${putEscapeCharactersOnBothSide(volume)}`
+            `${TWO_SPACES}${serviceName} --o ${name}`,
+            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.aggregation} ${putEscapeCharactersOnBothSide(name)}`
           );
         } else {
           this.relationships.set(
             `${TWO_SPACES}${serviceName} --o ${volume.source}`,
-            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.aggregation} ${putEscapeCharactersOnBothSide(volume.target)}`
+            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.aggregation} ${putEscapeCharactersOnBothSide("volume-" + volume.source)}`
           );
         }
       });
@@ -100,7 +105,7 @@ export class ComposeMermaidGenerator {
   }
 
   private buildNetworkClass(networkName: string, networkConfig: any): string[] {
-    const lines: string[] = [`${TWO_SPACES}class ${networkName}:::network {`];
+    const lines: string[] = [`${TWO_SPACES}class network-${networkName}:::network {`];
     if (networkConfig.name) {
       lines.push(`${FOUR_SPACES}+name: ${networkConfig.name}`);
     }
@@ -113,7 +118,7 @@ export class ComposeMermaidGenerator {
 
   private buildVolumeClass(volumeName: string, volumeConfig: any): string[] {
     // const lines: string[] = [`${TWO_SPACES}class ${volumeName}:::volume {`];
-    const lines: string[] = [`${TWO_SPACES}class ${volumeName} {`];
+    const lines: string[] = [`${TWO_SPACES}class volume-${volumeName}:::volume {`];
     if (volumeConfig.external) {
       lines.push(`${FOUR_SPACES}+external: ${volumeConfig.external}`);
     }
@@ -126,6 +131,8 @@ export class ComposeMermaidGenerator {
 
   public generateMermaidDiagram(): string {
     const containersString = [...this.containers.values()].flat().join("\n");
+    console.log("containersString")
+    console.log(containersString)
     const relationshipsString = [...this.relationships.values()].flat().join("\n");
     const networksString = [...this.networks.values()].flat().join("\n");
     const volumesString = [...this.volumes.values()].flat().join("\n");
