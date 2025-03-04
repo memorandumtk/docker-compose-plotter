@@ -1,4 +1,4 @@
-import { ComposeMermaidGenerator } from '../lib/mermaid/index';
+import { ComposeMermaidGenerator } from '../../lib/mermaid/index';
 
 describe('VolumeRelationship', () => {
   let sampleCompose: any;
