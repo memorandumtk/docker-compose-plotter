@@ -41,6 +41,7 @@ export type NetworkObject = {
 export type VolumeObject = {
   [volumeName: string]: {
     driver?: string;
+    name?: string;
     external?: string;
     [key: string]: any
   }

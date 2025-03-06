@@ -15,7 +15,7 @@ export class ComposeMermaidGenerator {
   constructor(baseCompose: ComposeFileData, overrideCompose?: ComposeFileData) {
     this.composeData = baseCompose;
     this.processData();
-    // console.dir(this.composeData, { depth: null })
+    console.dir(this.composeData, { depth: null })
   }
 
   private makeHeader(): string[] {
@@ -137,11 +137,14 @@ export class ComposeMermaidGenerator {
   private buildVolumeClass(volumeName: string, volumeConfig: any): string[] {
     // const lines: string[] = [`${TWO_SPACES}class ${volumeName}:::volume {`];
     const lines: string[] = [`${TWO_SPACES}class volume-${volumeName}:::volume {`];
-    if (volumeConfig.external) {
-      lines.push(`${FOUR_SPACES}+external: ${volumeConfig.external}`);
+    if (volumeConfig.external !== undefined) { // might be false so needed to check only if undefined
+      lines.push(`${FOUR_SPACES}+external: ${volumeConfig.external ? "true" : "false"}`);
     }
     if (volumeConfig.driver) {
       lines.push(`${FOUR_SPACES}+driver: ${volumeConfig.driver}`);
+    }
+    if (volumeConfig.name) {
+      lines.push(`${FOUR_SPACES}+name: ${volumeConfig.name}`);
     }
     lines.push(`${TWO_SPACES}}`);
     return lines;
@@ -149,8 +152,8 @@ export class ComposeMermaidGenerator {
 
   public generateMermaidDiagram(): string {
     const containersString = [...this.containers.values()].flat().join("\n");
-    console.log("containersString")
-    console.log(containersString)
+    // console.log("containersString")
+    // console.log(containersString)
     const relationshipsString = [...this.relationships.values()].flat().join("\n");
     const networksString = [...this.networks.values()].flat().join("\n");
     const volumesString = [...this.volumes.values()].flat().join("\n");
