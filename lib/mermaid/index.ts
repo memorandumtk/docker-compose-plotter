@@ -62,7 +62,12 @@ export class ComposeMermaidGenerator {
     }
     if (serviceConfig.ports) {
       serviceConfig.ports.forEach((port: string) => {
-        lines.push(`${FOUR_SPACES}+port: ${port}`);
+        lines.push(`${FOUR_SPACES}+ports: ${port}`);
+      });
+    }
+    if (serviceConfig.depends_on) {
+      serviceConfig.depends_on.forEach((dep: string) => {
+        lines.push(`${FOUR_SPACES}+depends_on: ${dep}`);
       });
     }
     return lines;
