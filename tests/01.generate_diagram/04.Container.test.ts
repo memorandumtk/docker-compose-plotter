@@ -9,6 +9,7 @@ describe('ContainerAvailableProperties', () => {
     name: "ContainerAvailableProperties",
     services: {
       serviceA: {
+        name: "service a",
         image: "nginx:latest",
         ports: ["80:80"],
         depends_on: ["serviceB"],
@@ -24,6 +25,10 @@ describe('ContainerAvailableProperties', () => {
     expect(diagram).toContain("class serviceA");
   });
 
+  test('should have name', () => {
+    expect(diagram).toContain("+name: service a");
+  });
+
   test('should have ports', () => {
     expect(diagram).toContain("+ports: 80:80");
   });
@@ -33,7 +38,7 @@ describe('ContainerAvailableProperties', () => {
   });
 
   test('should have networks', () => {
-    expect(diagram).toContain("serviceA -- network-net1");
+    expect(diagram).toContain("+networks: net1");
   });
 
   test('should have volumes', () => {

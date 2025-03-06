@@ -10,6 +10,7 @@ export const ARROWS_TO_RIGHT = {
   linkdashed: ".."
 }
 
+export const DescriptionOfColors = "*red - container, green - network, blue - volume"
 export const TWO_SPACES = "  "
 export const FOUR_SPACES = `${TWO_SPACES}${TWO_SPACES}`
 export const COLORS: Record<string, StyleClass> = {

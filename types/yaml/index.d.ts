@@ -3,6 +3,7 @@ export interface ComposeFileData {
   name?: string;
   services?: {
     [serviceName: string]: {
+      name?: string;
       image?: string;
       build?: BuildInContainer;
       depends_on?: string[];

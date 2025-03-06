@@ -1,5 +1,5 @@
 import { ComposeFileData, VolumeInContainer } from "../../types/yaml";
-import { ARROWS_TO_RIGHT, COLORS, FOUR_SPACES, TWO_SPACES } from '../../constants';
+import { ARROWS_TO_RIGHT, COLORS, DescriptionOfColors, FOUR_SPACES, TWO_SPACES } from '../../constants';
 import { putEscapeCharactersOnBothSide } from "../../utils";
 
 
@@ -19,9 +19,8 @@ export class ComposeMermaidGenerator {
   }
 
   private makeHeader(): string[] {
-    return this.composeData.name
-      ? [`---`, `title: ${this.composeData.name}`, `---`, `classDiagram`]
-      : ['classDiagram'];
+    const titleStr = this.composeData.name ? `title: ${this.composeData.name}` : ""
+    return [`---`, `${titleStr}${TWO_SPACES}${DescriptionOfColors}`, `---`, `classDiagram`]
   }
 
   private processData(): void {
@@ -57,6 +56,9 @@ export class ComposeMermaidGenerator {
 
   private buildServiceClass(serviceName: string, serviceConfig: any): string[] {
     const lines: string[] = [`${TWO_SPACES}class ${serviceName}:::container {`];
+    if (serviceConfig.name) {
+      lines.push(`${FOUR_SPACES}+name: ${serviceConfig.name}`);
+    }
     if (serviceConfig.image) {
       lines.push(`${FOUR_SPACES}+image: ${serviceConfig.image}`);
     }
@@ -77,18 +79,29 @@ export class ComposeMermaidGenerator {
     if (serviceConfig.depends_on) {
       serviceConfig.depends_on.forEach((dependency: string) => {
         this.relationships.set(
-          `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.composition} ${dependency}`,
-          `${TWO_SPACES}${serviceName} --* ${putEscapeCharactersOnBothSide(dependency)}`
+          `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.composition} ${dependency}: dependency`,
+          `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.composition} ${putEscapeCharactersOnBothSide(dependency)} : dependency`
         );
       });
     }
     if (serviceConfig.networks) {
+      const inlineNetworks: string[] = []
       serviceConfig.networks.forEach((network: string) => {
-        this.relationships.set(
-          `${TWO_SPACES}${serviceName} -- ${network}`,
-          `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.solidlink} network-${network}`
-        );
+        const setRelationshipOfNetwork = (name: string) => {
+          this.relationships.set(
+            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.association} ${name}: network`,
+            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.association} ${putEscapeCharactersOnBothSide(name)}: network`
+          );
+        }
+        if (this.networks.has(network)) {
+          setRelationshipOfNetwork(`network-${network}`)
+        } else {
+          inlineNetworks.push(`${FOUR_SPACES}+networks: ${network}`)
+        }
       });
+      if (inlineNetworks.length > 0) {
+        this.containers.get(serviceName)?.push(inlineNetworks.join("\n"))
+      }
     }
     if (serviceConfig.volumes) {
       const inlineVolumes: string[] = []
@@ -98,8 +111,8 @@ export class ComposeMermaidGenerator {
           const target = volume.split(":")[1]
           const setRelationshipOfVolume = (name: string) => {
             this.relationships.set(
-              `${TWO_SPACES}${serviceName} --o ${name}`,
-              `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.aggregation} ${putEscapeCharactersOnBothSide(name)}`
+              `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.realization} ${name}: volume`,
+              `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.realization} ${putEscapeCharactersOnBothSide(name)}: volume`
             );
           }
           if (this.volumes.has(source)) {
@@ -111,8 +124,8 @@ export class ComposeMermaidGenerator {
           }
         } else {
           this.relationships.set(
-            `${TWO_SPACES}${serviceName} --o ${volume.source}`,
-            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.aggregation} ${putEscapeCharactersOnBothSide("volume-" + volume.source)}`
+            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.realization} ${volume.source}: volume`,
+            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.realization} ${putEscapeCharactersOnBothSide("volume-" + volume.source)}: volume`
           );
         }
       });
