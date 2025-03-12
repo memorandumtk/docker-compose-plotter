@@ -51,7 +51,6 @@ export class ComposeMermaidGenerator {
     // Process services and their relationships
     Object.entries(services).forEach(([serviceName, serviceConfig]) => {
       const node = this.buildServiceNode(serviceName, serviceConfig);
-      this.serviceNodes.set(serviceName, node);
 
       // Register the service inside each network subgraph it belongs to
       if (serviceConfig.networks) {
@@ -63,12 +62,22 @@ export class ComposeMermaidGenerator {
         });
       }
 
-      this.processServiceRelationships(serviceName, serviceConfig);
+      const labelArray = this.processServiceRelationships(serviceName, serviceConfig, node);
+
+      const nodeString = this.putEdgeStringsForServiceNode(serviceName, labelArray.join("<br>"))
+      this.serviceNodes.set(serviceName, nodeString);
     });
   }
 
+  /**
+  * Put a string of serviceName and brakets
+  */
+  private putEdgeStringsForServiceNode(serviceName: string, label: string) {
+    return `  ${serviceName}[${label}]`;
+  }
+
   // Build a flowchart node for a service.
-  private buildServiceNode(serviceName: string, serviceConfig: any): string {
+  private buildServiceNode(serviceName: string, serviceConfig: any): string[] {
     const details: string[] = [];
     if (serviceConfig.name) {
       details.push(`name: ${serviceConfig.name}`);
@@ -84,14 +93,13 @@ export class ComposeMermaidGenerator {
       details.push(`ports: ${portsArray.join(", ")}`);
     }
     if (serviceConfig.depends_on) {
-      details.push(`depends on: ${serviceConfig.depends_on.join(", ")}`);
+      details.push(`depends_on: ${serviceConfig.depends_on.join(", ")}`);
     }
-    const label = `${serviceName}<br>${details.join("<br>")}`;
-    // Using square brackets for node definition
-    return `  ${serviceName}[${label}]`;
+    details.unshift(serviceName)
+    return details
   }
 
-  private processServiceRelationships(serviceName: string, serviceConfig: any): void {
+  private processServiceRelationships(serviceName: string, serviceConfig: any, node: string[]): string[] {
     // Process depends_on relationships
     if (serviceConfig.depends_on) {
       serviceConfig.depends_on.forEach((dependency: string) => {
@@ -130,9 +138,10 @@ export class ComposeMermaidGenerator {
       });
       if (arrayToPushContainerVolume.length > 0) {
         console.log(this.serviceNodes)
-        this.serviceNodes.get(serviceName)?.concat(`volumes: ${arrayToPushContainerVolume.join(', ')}`)
+        node.push(`volumes: ${arrayToPushContainerVolume.join(', ')}`)
       }
     }
+    return node
   }
 
   // Build a flowchart node for a volume.
