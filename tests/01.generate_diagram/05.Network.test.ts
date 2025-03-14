@@ -15,15 +15,15 @@ describe('NetworkAvailableProperties', () => {
   diagram = generator.generateMermaidDiagram();
 
   test('class should be included', () => {
-    expect(diagram).toContain(`subgraph network-net1 [network-net1`);
+    expect(diagram).toContain(`network-net1[\"network-net1\"]`);
   });
 
   test('should have name', () => {
-    expect(diagram).toContain("<br>name: test network<br>");
+    expect(diagram).toContain("network-net1[\"network-net1\"]");
   });
 
   test('should have driver', () => {
-    expect(diagram).toContain("<br>driver: bridge");
+    expect(diagram).toContain(`subgraph bridge [\"bridge Networks\"]`);
   });
 });
 

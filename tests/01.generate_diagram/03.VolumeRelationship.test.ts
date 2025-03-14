@@ -32,6 +32,6 @@ describe('VolumeRelationship', () => {
 
   test('should include relationship for volume define in its container', () => {
     // TODO: Shoudl it check the array within the process to produce the mermaid string?
-    expect(diagram).toContain("frontend[frontend<br>ports: 3000:3000<br>volumes: ./frontend/src:/code/src:ro]");
+    expect(diagram).toContain(`frontend(frontend<br>ports: 3000:3000<br>volumes: ./frontend/src:/code/src:ro)`);
   });
 });

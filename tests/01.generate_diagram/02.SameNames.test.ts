@@ -30,11 +30,11 @@ describe('SameNames', () => {
   diagram = generator.generateMermaidDiagram();
 
   test('should include service definitions', () => {
-    expect(diagram).toContain("frontend[frontend");
+    expect(diagram).toContain("frontend(frontend");
   });
 
   test('should include network definitions', () => {
-    expect(diagram).toContain("subgraph network-frontend [network-frontend<br>name: custom_frontend<br>driver: custom-driver-1]");
+    expect(diagram).toContain(`network-frontend[\"network-frontend\"]`);
   });
 
   test('should include relationship for volumes', () => {

@@ -22,7 +22,7 @@ describe('ContainerAvailableProperties', () => {
   generator = new ComposeMermaidGenerator(sampleCompose);
   diagram = generator.generateMermaidDiagram();
   test('should include service definitions', () => {
-    expect(diagram).toContain("serviceA[");
+    expect(diagram).toContain("serviceA(");
   });
 
   test('should have name', () => {
@@ -38,7 +38,7 @@ describe('ContainerAvailableProperties', () => {
   });
 
   test('should have volumes at the end', () => {
-    expect(diagram).toContain("<br>volumes: vol1]");
+    expect(diagram).toContain("<br>volumes: vol1)");
   });
 });
 
