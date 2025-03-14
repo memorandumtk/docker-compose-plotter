@@ -81,7 +81,7 @@ export class ComposeMermaidGenerator {
    * Wrap the service name with its label.
    */
   private putEdgeStringsForServiceNode(serviceName: string, label: string) {
-    return `  ${serviceName}:::container[${label}]`;
+    return `  ${serviceName}[${label}]`;
   }
 
   // Build a flowchart node for a service.
@@ -155,7 +155,7 @@ export class ComposeMermaidGenerator {
       details.push(`name: ${volumeConfig.name}`);
     }
     const label = `volume-${volumeName}<br>${details.join("<br>")}`;
-    return `  volume-${volumeName}[${label}]\n  class volume-${volumeName} volume`;
+    return `  volume-${volumeName}[(${label})]\n  class volume-${volumeName} volume`;
   }
 
   // Generate network visualizations: subgraphs for networks with services, and simple nodes for empty networks.
