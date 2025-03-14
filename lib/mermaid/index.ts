@@ -1,183 +1,244 @@
 import { ComposeFileData, VolumeInContainer } from "../../types/yaml";
-import { ARROWS_TO_RIGHT, COLORS, DescriptionOfColors, FOUR_SPACES, TWO_SPACES } from '../../constants';
-import { putEscapeCharactersOnBothSide } from "../../utils";
 
+interface NetworkSubgraphData {
+  details: string[];
+  services: string[];
+  driver: string;
+}
 
 export class ComposeMermaidGenerator {
   private composeData: ComposeFileData;
   private header: string[] = [];
-  private classDefinitions: string[] = [];
-  private relationships: Map<string, string> = new Map();
-  private containers: Map<string, string[]> = new Map();
-  private networks: Map<string, string[]> = new Map();
-  private volumes: Map<string, string[]> = new Map();
+  private serviceNodes: Map<string, string> = new Map();
+  private relationships: string[] = [];
+  // Now include a driver property for each network subgraph.
+  private networkSubgraphs: Map<string, NetworkSubgraphData> = new Map();
+  private volumeNodes: string[] = [];
 
   constructor(baseCompose: ComposeFileData, overrideCompose?: ComposeFileData) {
     this.composeData = baseCompose;
     this.processData();
-    console.dir(this.composeData, { depth: null })
+    console.dir(this.composeData, { depth: null });
   }
 
   private makeHeader(): string[] {
-    const titleStr = this.composeData.name ? `title: ${this.composeData.name}` : ""
-    return [`---`, `${titleStr}${TWO_SPACES}${DescriptionOfColors}`, `---`, `classDiagram`]
+    const titleStr = this.composeData.name ? `title: ${this.composeData.name}` : "";
+    return [
+      `---`,
+      `${titleStr}`,
+      `---`,
+      `%%{init: {'theme':'forest'}}%%`,
+      `graph LR`,
+    ];
   }
 
   private processData(): void {
     const { services = {}, networks = {}, volumes = {} } = this.composeData;
     this.header = this.makeHeader();
 
-    // Process networks
+    // Initialize subgraphs for defined networks.
+    // For networks without a driver, default the driver to "bridge".
     Object.entries(networks).forEach(([networkName, networkConfig]) => {
-      this.networks.set(`${networkName}`, this.buildNetworkClass(networkName, networkConfig));
+      const details: string[] = [];
+      if (networkConfig.name) {
+        details.push(`name: ${networkConfig.name}`);
+      }
+      let driver = "bridge";
+      if (networkConfig.driver) {
+        details.push(`driver: ${networkConfig.driver}`);
+        driver = networkConfig.driver;
+      }
+      this.networkSubgraphs.set(networkName, { details, services: [], driver });
     });
 
-    // Process volumes
+    // Process volumes.
     Object.entries(volumes).forEach(([volumeName, volumeConfig]) => {
-      this.volumes.set(`${volumeName}`, this.buildVolumeClass(volumeName, volumeConfig));
+      const node = this.buildVolumeNode(volumeName, volumeConfig);
+      this.volumeNodes.push(node);
     });
 
-    // Process services and their relationships
+    // Process services and their relationships.
     Object.entries(services).forEach(([serviceName, serviceConfig]) => {
-      const serviceClass = this.buildServiceClass(serviceName, serviceConfig);
-      this.containers.set(serviceName, serviceClass);
-      this.processServiceRelationships(serviceName, serviceConfig);
-      // put "}" after all proccess for container (service) is done
-      this.containers.get(serviceName)?.push(`${TWO_SPACES}}`);
+      const node = this.buildServiceNode(serviceName, serviceConfig);
+      // Register the service inside each network subgraph it belongs to.
+      if (serviceConfig.networks) {
+        serviceConfig.networks.forEach((network: string) => {
+          const netSubgraph = this.networkSubgraphs.get(network);
+          if (netSubgraph) {
+            netSubgraph.services.push(serviceName);
+          }
+        });
+      }
+      const labelArray = this.processServiceRelationships(serviceName, serviceConfig, node);
+      const nodeString = this.putEdgeStringsForServiceNode(serviceName, labelArray.join("<br>"));
+      this.serviceNodes.set(serviceName, nodeString);
     });
-
-    // Define color styles for the classes
-    this.classDefinitions = [
-      `${TWO_SPACES}classDef container fill:${COLORS.container.fill},color:${COLORS.container.color}`,
-      `${TWO_SPACES}classDef network fill:${COLORS.network.fill},color:${COLORS.network.color}`,
-      `${TWO_SPACES}classDef volume fill:${COLORS.volume.fill},color:${COLORS.volume.color}`
-    ];
   }
 
-  private buildServiceClass(serviceName: string, serviceConfig: any): string[] {
-    const lines: string[] = [`${TWO_SPACES}class ${serviceName}:::container {`];
+  /**
+   * Wrap the service name with its label.
+   */
+  private putEdgeStringsForServiceNode(serviceName: string, label: string) {
+    return `  ${serviceName}(${label})\n  class ${serviceName} container;`;
+  }
+
+  // Build a flowchart node for a service.
+  // Returns an array of strings representing parts of the label.
+  private buildServiceNode(serviceName: string, serviceConfig: any): string[] {
+    const details: string[] = [];
     if (serviceConfig.name) {
-      lines.push(`${FOUR_SPACES}+name: ${serviceConfig.name}`);
+      details.push(`name: ${serviceConfig.name}`);
     }
     if (serviceConfig.image) {
-      lines.push(`${FOUR_SPACES}+image: ${serviceConfig.image}`);
+      details.push(`image: ${serviceConfig.image}`);
     }
     if (serviceConfig.ports) {
+      const portsArray: string[] = [];
       serviceConfig.ports.forEach((port: string) => {
-        lines.push(`${FOUR_SPACES}+ports: ${port}`);
+        portsArray.push(port);
       });
+      details.push(`ports: ${portsArray.join(", ")}`);
     }
     if (serviceConfig.depends_on) {
-      serviceConfig.depends_on.forEach((dep: string) => {
-        lines.push(`${FOUR_SPACES}+depends_on: ${dep}`);
-      });
+      details.push(`depends_on: ${serviceConfig.depends_on.join(", ")}`);
     }
-    return lines;
+    details.unshift(serviceName);
+    return details;
   }
 
-  private processServiceRelationships(serviceName: string, serviceConfig: any): void {
+  private processServiceRelationships(serviceName: string, serviceConfig: any, node: string[]): string[] {
+    // Process depends_on relationships.
     if (serviceConfig.depends_on) {
       serviceConfig.depends_on.forEach((dependency: string) => {
-        this.relationships.set(
-          `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.composition} ${dependency}: dependency`,
-          `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.composition} ${putEscapeCharactersOnBothSide(dependency)} : dependency`
-        );
+        this.relationships.push(`  ${serviceName} -- "depends on" --> ${dependency}`);
       });
     }
-    if (serviceConfig.networks) {
-      const inlineNetworks: string[] = []
-      serviceConfig.networks.forEach((network: string) => {
-        const setRelationshipOfNetwork = (name: string) => {
-          this.relationships.set(
-            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.association} ${name}: network`,
-            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.association} ${putEscapeCharactersOnBothSide(name)}: network`
-          );
-        }
-        if (this.networks.has(network)) {
-          setRelationshipOfNetwork(`network-${network}`)
-        } else {
-          inlineNetworks.push(`${FOUR_SPACES}+networks: ${network}`)
-        }
-      });
-      if (inlineNetworks.length > 0) {
-        this.containers.get(serviceName)?.push(inlineNetworks.join("\n"))
-      }
-    }
+
+    // Process volumes.
     if (serviceConfig.volumes) {
-      const inlineVolumes: string[] = []
+      const inlineVolumes: string[] = [];
       serviceConfig.volumes.forEach((volume: VolumeInContainer) => {
         if (typeof volume === "string") {
-          const source = volume.split(":")[0]
-          const target = volume.split(":")[1]
-          const setRelationshipOfVolume = (name: string) => {
-            this.relationships.set(
-              `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.realization} ${name}: volume`,
-              `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.realization} ${putEscapeCharactersOnBothSide(name)}: volume`
-            );
-          }
-          if (this.volumes.has(source)) {
-            setRelationshipOfVolume(`volume-${source}`)
-          } else if (this.volumes.has(target)) {
-            setRelationshipOfVolume(`volume-${target}`)
+          const parts = volume.split(":");
+          const source = parts[0];
+          const target = parts[1];
+          if (this.volumeNodes.find(node => node.includes(`volume-${source}`))) {
+            this.relationships.push(`  ${serviceName} -- "volume" --> volume-${source}`);
+          } else if (this.volumeNodes.find(node => node.includes(`volume-${target}`))) {
+            this.relationships.push(`  ${serviceName} -- "volume" --> volume-${target}`);
           } else {
-            inlineVolumes.push(`${FOUR_SPACES}+volumes: ${volume}`)
+            inlineVolumes.push(volume);
           }
         } else {
-          this.relationships.set(
-            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.realization} ${volume.source}: volume`,
-            `${TWO_SPACES}${serviceName} ${ARROWS_TO_RIGHT.realization} ${putEscapeCharactersOnBothSide("volume-" + volume.source)}: volume`
-          );
+          this.relationships.push(`  ${serviceName} -- "volume" --> volume-${volume.source}`);
         }
       });
       if (inlineVolumes.length > 0) {
-        this.containers.get(serviceName)?.push(inlineVolumes.join("\n"))
+        node.push(`volumes: ${inlineVolumes.join(', ')}`);
       }
     }
+    return node;
   }
 
-  private buildNetworkClass(networkName: string, networkConfig: any): string[] {
-    const lines: string[] = [`${TWO_SPACES}class network-${networkName}:::network {`];
-    if (networkConfig.name) {
-      lines.push(`${FOUR_SPACES}+name: ${networkConfig.name}`);
-    }
-    if (networkConfig.driver) {
-      lines.push(`${FOUR_SPACES}+driver: ${networkConfig.driver}`);
-    }
-    lines.push(`${TWO_SPACES}}`);
-    return lines;
-  }
-
-  private buildVolumeClass(volumeName: string, volumeConfig: any): string[] {
-    // const lines: string[] = [`${TWO_SPACES}class ${volumeName}:::volume {`];
-    const lines: string[] = [`${TWO_SPACES}class volume-${volumeName}:::volume {`];
-    if (volumeConfig.external !== undefined) { // might be false so needed to check only if undefined
-      lines.push(`${FOUR_SPACES}+external: ${volumeConfig.external ? "true" : "false"}`);
+  // Build a flowchart node for a volume.
+  private buildVolumeNode(volumeName: string, volumeConfig: any): string {
+    const details: string[] = [];
+    if (volumeConfig.external !== undefined) {
+      details.push(`external: ${volumeConfig.external ? "true" : "false"}`);
     }
     if (volumeConfig.driver) {
-      lines.push(`${FOUR_SPACES}+driver: ${volumeConfig.driver}`);
+      details.push(`driver: ${volumeConfig.driver}`);
     }
     if (volumeConfig.name) {
-      lines.push(`${FOUR_SPACES}+name: ${volumeConfig.name}`);
+      details.push(`name: ${volumeConfig.name}`);
     }
-    lines.push(`${TWO_SPACES}}`);
-    return lines;
+    const label = `volume-${volumeName}<br>${details.join("<br>")}`;
+    return `  volume-${volumeName}[(${label})]\n  class volume-${volumeName} volume`;
+  }
+
+  // Generate network visualizations: subgraphs for networks with services, and simple nodes for empty networks.
+  private generateNetworkSubgraphs(): string[] {
+    const networkVisuals: string[] = [];
+    const driverGroups: Map<string, string[]> = new Map();
+
+    this.networkSubgraphs.forEach((data, networkName) => {
+      if (data.services.length === 0) {
+        // If the network has no services, create a simple network node instead of a subgraph.
+        // networkVisuals.push(`  network-${networkName}["network-${networkName}"]\n  class network-${networkName} network;`);
+        const networkClass = `    network-${networkName}["network-${networkName}"]\n    class network-${networkName} network;`
+        const driver = data.driver;
+        if (!driverGroups.has(driver)) {
+          driverGroups.set(driver, []);
+        }
+        driverGroups.get(driver)?.push(networkClass);
+      } else {
+        // Otherwise, create a subgraph for networks with services.
+        let subgraphBlock = `    subgraph network-${networkName} ["network-${networkName}"]`;
+        data.services.forEach(serviceName => {
+          const node = this.serviceNodes.get(serviceName);
+          if (node) {
+            subgraphBlock += `\n      ${node.trim()}`;
+          }
+        });
+        subgraphBlock += `\n    end`;
+
+        // Group subgraphs by network driver type
+        const driver = data.driver;
+        if (!driverGroups.has(driver)) {
+          driverGroups.set(driver, []);
+        }
+        driverGroups.get(driver)?.push(subgraphBlock);
+      }
+    });
+
+    // Wrap network subgraphs by driver type
+    driverGroups.forEach((subgraphs, driver) => {
+      let outerBlock = `  subgraph ${driver} ["${driver} Networks"]`;
+      subgraphs.forEach(block => {
+        outerBlock += `\n${block}`;
+      });
+      outerBlock += `\n  end`;
+      networkVisuals.push(outerBlock);
+    });
+
+    return networkVisuals;
   }
 
   public generateMermaidDiagram(): string {
-    const containersString = [...this.containers.values()].flat().join("\n");
-    // console.log("containersString")
-    // console.log(containersString)
-    const relationshipsString = [...this.relationships.values()].flat().join("\n");
-    const networksString = [...this.networks.values()].flat().join("\n");
-    const volumesString = [...this.volumes.values()].flat().join("\n");
+    // Gather nodes for services that are not part of any network subgraph.
+    const servicesNotInSubgraph: string[] = [];
+    this.serviceNodes.forEach((node, serviceName) => {
+      const isInSubgraph = Array.from(this.networkSubgraphs.values()).some(subgraphData => subgraphData.services.includes(serviceName));
+      if (!isInSubgraph) {
+        servicesNotInSubgraph.push(node);
+      }
+    });
+
+    const styleDefinitions = [
+      `classDef container fill:coral,color:white;`,
+      `classDef network fill:#cdffb2,color:black,stroke:#6eaa49;`,
+      `classDef volume fill:skyblue,color:white;`,
+    ];
+    //
+    // const allowStyle = [
+    //   `linkStyle default stroke:#ff5733,stroke-width:2px;`,
+    //   `linkStyle 0 stroke:#3498db,stroke-width:2px;`
+    // ]
 
     return [
       ...this.header,
-      containersString,
-      relationshipsString,
-      networksString,
-      volumesString,
-      ...this.classDefinitions,
+      // Services not inside any subgraph.
+      ...servicesNotInSubgraph,
+      // Outer subgraphs grouping network subgraphs by driver.
+      ...this.generateNetworkSubgraphs(),
+      // Volume nodes.
+      ...this.volumeNodes,
+      // Relationships.
+      ...this.relationships,
+      // Style definitions.
+      ...styleDefinitions,
+      // ...allowStyle
     ].join("\n");
   }
 }
+

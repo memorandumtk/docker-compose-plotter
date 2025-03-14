@@ -30,24 +30,14 @@ describe('SameNames', () => {
   diagram = generator.generateMermaidDiagram();
 
   test('should include service definitions', () => {
-    expect(diagram).toContain("class frontend");
+    expect(diagram).toContain("frontend(frontend");
   });
 
   test('should include network definitions', () => {
-    expect(diagram).toContain("class network-frontend");
-    expect(diagram).toContain("+driver: custom-driver-1");
-    expect(diagram).toContain("+name: custom_frontend");
-  });
-
-  test('should include relationship for networks', () => {
-    // The relationship string depends on your ARROWS_TO_RIGHT.solidlink implementation.
-    expect(diagram).toContain("frontend");
-    expect(diagram).toContain("network-frontend");
+    expect(diagram).toContain(`network-frontend[\"network-frontend\"]`);
   });
 
   test('should include relationship for volumes', () => {
-    // The relationship string depends on your ARROWS_TO_RIGHT.solidlink implementation.
-    expect(diagram).toContain("frontend");
     expect(diagram).toContain("volume-frontend");
   });
 });

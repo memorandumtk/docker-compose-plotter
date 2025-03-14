@@ -9,7 +9,6 @@ describe('VolumeRelationship', () => {
     name: "Volume relationship",
     services: {
       frontend: {
-        build: { context: 'frontend', target: 'development' },
         networks: ['client-side'],
         ports: ['3000:3000'],
         volumes: ['./frontend/src:/code/src:ro']
@@ -26,18 +25,13 @@ describe('VolumeRelationship', () => {
   generator = new ComposeMermaidGenerator(sampleCompose);
   diagram = generator.generateMermaidDiagram();
 
-  test('should include service definitions', () => {
-    expect(diagram).toContain("class frontend");
-    expect(diagram).toContain("class backend");
-  });
-
   test('should include relationship for volume defined in volume section', () => {
-    expect(diagram).toContain("backend");
-    expect(diagram).toContain("backend-cache");
+    expect(diagram).toContain("volume-backend-cache");
+    expect(diagram).toContain(`backend -- "volume" --> volume-backend-cache`);
   });
 
   test('should include relationship for volume define in its container', () => {
-    expect(diagram).toContain("frontend");
-    expect(diagram).toContain("+volumes: ./frontend/src:/code/src:ro");
+    // TODO: Should it check the array within the process to produce the mermaid string?
+    expect(diagram).toContain(`frontend(frontend<br>ports: 3000:3000<br>volumes: ./frontend/src:/code/src:ro)`);
   });
 });

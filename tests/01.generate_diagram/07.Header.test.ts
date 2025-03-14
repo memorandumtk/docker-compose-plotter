@@ -13,12 +13,11 @@ describe('Header', () => {
   generator = new ComposeMermaidGenerator(sampleCompose);
   diagram = generator.generateMermaidDiagram();
   test('should have name', () => {
-    expect(diagram).toContain("Header");
+    expect(diagram).toContain("title: Header");
   });
 
-  test('should have color description in title', () => {
-    expect(diagram).toContain(DescriptionOfColors);
+  test('should have graph LR decralation', () => {
+    expect(diagram).toContain("graph LR")
   });
-
 });
 

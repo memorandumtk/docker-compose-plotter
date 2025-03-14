@@ -15,15 +15,16 @@ describe('VolumeAvailableProperties', () => {
   diagram = generator.generateMermaidDiagram();
 
   test('class should be included', () => {
-    expect(diagram).toContain(`${TWO_SPACES}class volume-net1`);
-  });
-
-  test('should have name', () => {
-    expect(diagram).toContain("+name: test volume");
+    expect(diagram).toContain(`class volume-net1 volume`);
   });
 
   test('should have ', () => {
-    expect(diagram).toContain("+external: false");
+    expect(diagram).toContain("<br>external: false");
   });
+
+  test('should have name', () => {
+    expect(diagram).toContain("<br>name: test volume");
+  });
+
 });
 
