@@ -1,6 +1,4 @@
 import { ComposeFileData, VolumeInContainer } from "../../types/yaml";
-import { ARROWS_TO_RIGHT, COLORS, DescriptionOfColors, FOUR_SPACES, TWO_SPACES } from '../../constants';
-import { putEscapeCharactersOnBothSide } from "../../utils";
 
 interface NetworkSubgraphData {
   details: string[];
@@ -27,10 +25,10 @@ export class ComposeMermaidGenerator {
     const titleStr = this.composeData.name ? `title: ${this.composeData.name}` : "";
     return [
       `---`,
-      `${titleStr}${TWO_SPACES}${DescriptionOfColors}`,
+      `${titleStr}`,
       `---`,
       `%%{init: {'theme':'forest'}}%%`,
-      `graph LR`
+      `graph LR`,
     ];
   }
 
@@ -81,7 +79,7 @@ export class ComposeMermaidGenerator {
    * Wrap the service name with its label.
    */
   private putEdgeStringsForServiceNode(serviceName: string, label: string) {
-    return `  ${serviceName}[${label}]`;
+    return `  ${serviceName}(${label})\n  class ${serviceName} container;`;
   }
 
   // Build a flowchart node for a service.
@@ -217,10 +215,15 @@ export class ComposeMermaidGenerator {
     });
 
     const styleDefinitions = [
-      `classDef container fill:${COLORS.container.fill},color:${COLORS.container.color};`,
-      `classDef network fill:#cdffb2,color:#000,stroke:#6eaa49;`,
-      `classDef volume fill:${COLORS.volume.fill},color:${COLORS.volume.color};`,
+      `classDef container fill:coral,color:white;`,
+      `classDef network fill:#cdffb2,color:black,stroke:#6eaa49;`,
+      `classDef volume fill:skyblue,color:white;`,
     ];
+    //
+    // const allowStyle = [
+    //   `linkStyle default stroke:#ff5733,stroke-width:2px;`,
+    //   `linkStyle 0 stroke:#3498db,stroke-width:2px;`
+    // ]
 
     return [
       ...this.header,
@@ -233,7 +236,8 @@ export class ComposeMermaidGenerator {
       // Relationships.
       ...this.relationships,
       // Style definitions.
-      ...styleDefinitions
+      ...styleDefinitions,
+      // ...allowStyle
     ].join("\n");
   }
 }
