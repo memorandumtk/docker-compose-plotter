@@ -31,7 +31,7 @@ export type BuildInContainer = string | {
 }
 
 export type NetworkObject = {
-  [networkName: string]: {
+  [networkName: string]: null | {
     name?: string;
     driver?: string;
     [key: string]: any;
@@ -40,7 +40,7 @@ export type NetworkObject = {
 
 
 export type VolumeObject = {
-  [volumeName: string]: {
+  [volumeName: string]: null | {
     driver?: string;
     name?: string;
     external?: string;

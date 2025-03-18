@@ -11,14 +11,35 @@ export class ComposeMermaidGenerator {
   private header: string[] = [];
   private serviceNodes: Map<string, string> = new Map();
   private relationships: string[] = [];
-  // Now include a driver property for each network subgraph.
-  private networkSubgraphs: Map<string, NetworkSubgraphData> = new Map();
-  private volumeNodes: string[] = [];
+  private networkSubgraphsMap: Map<string, NetworkSubgraphData> = new Map();
+  private volumeNodesArray: string[] = [];
 
   constructor(baseCompose: ComposeFileData, overrideCompose?: ComposeFileData) {
     this.composeData = baseCompose;
     this.processData();
     console.dir(this.composeData, { depth: null });
+  }
+
+  // Getters for testing and inspection.
+  public get networkSubgraphs(): Map<string, NetworkSubgraphData> {
+    // Optionally return a copy if you want to protect internal state.
+    return new Map(this.networkSubgraphsMap);
+  }
+
+  public get volumeNodes(): string[] {
+    return [...this.volumeNodesArray];
+  }
+
+  public get serviceNodesMap(): Map<string, string> {
+    return new Map(this.serviceNodes);
+  }
+
+  public get relationshipList(): string[] {
+    return [...this.relationships];
+  }
+
+  public get headerList(): string[] {
+    return [...this.header];
   }
 
   private makeHeader(): string[] {
@@ -40,21 +61,21 @@ export class ComposeMermaidGenerator {
     // For networks without a driver, default the driver to "bridge".
     Object.entries(networks).forEach(([networkName, networkConfig]) => {
       const details: string[] = [];
-      if (networkConfig.name) {
+      if (networkConfig && networkConfig.name) {
         details.push(`name: ${networkConfig.name}`);
       }
       let driver = "bridge";
-      if (networkConfig.driver) {
+      if (networkConfig && networkConfig.driver) {
         details.push(`driver: ${networkConfig.driver}`);
         driver = networkConfig.driver;
       }
-      this.networkSubgraphs.set(networkName, { details, services: [], driver });
+      this.networkSubgraphsMap.set(networkName, { details, services: [], driver });
     });
 
     // Process volumes.
     Object.entries(volumes).forEach(([volumeName, volumeConfig]) => {
       const node = this.buildVolumeNode(volumeName, volumeConfig);
-      this.volumeNodes.push(node);
+      this.volumeNodesArray.push(node);
     });
 
     // Process services and their relationships.
@@ -63,7 +84,7 @@ export class ComposeMermaidGenerator {
       // Register the service inside each network subgraph it belongs to.
       if (serviceConfig.networks) {
         serviceConfig.networks.forEach((network: string) => {
-          const netSubgraph = this.networkSubgraphs.get(network);
+          const netSubgraph = this.networkSubgraphsMap.get(network);
           if (netSubgraph) {
             netSubgraph.services.push(serviceName);
           }
@@ -78,7 +99,7 @@ export class ComposeMermaidGenerator {
   /**
    * Wrap the service name with its label.
    */
-  private putEdgeStringsForServiceNode(serviceName: string, label: string) {
+  private putEdgeStringsForServiceNode(serviceName: string, label: string): string {
     return `  ${serviceName}(${label})\n  class ${serviceName} container;`;
   }
 
@@ -122,9 +143,9 @@ export class ComposeMermaidGenerator {
           const parts = volume.split(":");
           const source = parts[0];
           const target = parts[1];
-          if (this.volumeNodes.find(node => node.includes(`volume-${source}`))) {
+          if (this.volumeNodesArray.find(node => node.includes(`volume-${source}`))) {
             this.relationships.push(`  ${serviceName} -- "volume" --> volume-${source}`);
-          } else if (this.volumeNodes.find(node => node.includes(`volume-${target}`))) {
+          } else if (this.volumeNodesArray.find(node => node.includes(`volume-${target}`))) {
             this.relationships.push(`  ${serviceName} -- "volume" --> volume-${target}`);
           } else {
             inlineVolumes.push(volume);
@@ -156,23 +177,20 @@ export class ComposeMermaidGenerator {
     return `  volume-${volumeName}[(${label})]\n  class volume-${volumeName} volume`;
   }
 
-  // Generate network visualizations: subgraphs for networks with services, and simple nodes for empty networks.
+  // Generate network visualizations.
   private generateNetworkSubgraphs(): string[] {
     const networkVisuals: string[] = [];
     const driverGroups: Map<string, string[]> = new Map();
 
-    this.networkSubgraphs.forEach((data, networkName) => {
+    this.networkSubgraphsMap.forEach((data, networkName) => {
       if (data.services.length === 0) {
-        // If the network has no services, create a simple network node instead of a subgraph.
-        // networkVisuals.push(`  network-${networkName}["network-${networkName}"]\n  class network-${networkName} network;`);
-        const networkClass = `    network-${networkName}["network-${networkName}"]\n    class network-${networkName} network;`
+        const networkClass = `    network-${networkName}["network-${networkName}"]\n    class network-${networkName} network;`;
         const driver = data.driver;
         if (!driverGroups.has(driver)) {
           driverGroups.set(driver, []);
         }
         driverGroups.get(driver)?.push(networkClass);
       } else {
-        // Otherwise, create a subgraph for networks with services.
         let subgraphBlock = `    subgraph network-${networkName} ["network-${networkName}"]`;
         data.services.forEach(serviceName => {
           const node = this.serviceNodes.get(serviceName);
@@ -182,7 +200,6 @@ export class ComposeMermaidGenerator {
         });
         subgraphBlock += `\n    end`;
 
-        // Group subgraphs by network driver type
         const driver = data.driver;
         if (!driverGroups.has(driver)) {
           driverGroups.set(driver, []);
@@ -191,7 +208,6 @@ export class ComposeMermaidGenerator {
       }
     });
 
-    // Wrap network subgraphs by driver type
     driverGroups.forEach((subgraphs, driver) => {
       let outerBlock = `  subgraph ${driver} ["${driver} Networks"]`;
       subgraphs.forEach(block => {
@@ -205,10 +221,11 @@ export class ComposeMermaidGenerator {
   }
 
   public generateMermaidDiagram(): string {
-    // Gather nodes for services that are not part of any network subgraph.
     const servicesNotInSubgraph: string[] = [];
     this.serviceNodes.forEach((node, serviceName) => {
-      const isInSubgraph = Array.from(this.networkSubgraphs.values()).some(subgraphData => subgraphData.services.includes(serviceName));
+      const isInSubgraph = Array.from(this.networkSubgraphsMap.values()).some(
+        subgraphData => subgraphData.services.includes(serviceName)
+      );
       if (!isInSubgraph) {
         servicesNotInSubgraph.push(node);
       }
@@ -219,26 +236,14 @@ export class ComposeMermaidGenerator {
       `classDef network fill:#cdffb2,color:black,stroke:#6eaa49;`,
       `classDef volume fill:skyblue,color:white;`,
     ];
-    //
-    // const allowStyle = [
-    //   `linkStyle default stroke:#ff5733,stroke-width:2px;`,
-    //   `linkStyle 0 stroke:#3498db,stroke-width:2px;`
-    // ]
 
     return [
       ...this.header,
-      // Services not inside any subgraph.
       ...servicesNotInSubgraph,
-      // Outer subgraphs grouping network subgraphs by driver.
       ...this.generateNetworkSubgraphs(),
-      // Volume nodes.
-      ...this.volumeNodes,
-      // Relationships.
+      ...this.volumeNodesArray,
       ...this.relationships,
-      // Style definitions.
       ...styleDefinitions,
-      // ...allowStyle
     ].join("\n");
   }
 }
-

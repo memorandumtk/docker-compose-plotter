@@ -14,6 +14,12 @@ describe('VolumeAvailableProperties', () => {
   generator = new ComposeMermaidGenerator(sampleCompose);
   diagram = generator.generateMermaidDiagram();
 
+  test('should include volume node definitions', () => {
+    const volumeNodes = generator.volumeNodes;
+    expect(volumeNodes.length).toBe(1);
+    expect(volumeNodes[0]).toContain("net1");
+  });
+
   test('class should be included', () => {
     expect(diagram).toContain(`class volume-net1 volume`);
   });

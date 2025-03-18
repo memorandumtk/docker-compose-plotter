@@ -21,6 +21,13 @@ describe('ContainerAvailableProperties', () => {
 
   generator = new ComposeMermaidGenerator(sampleCompose);
   diagram = generator.generateMermaidDiagram();
+
+  test('should include service definitions', () => {
+    const serviceNodes = generator.serviceNodesMap;
+    expect(serviceNodes.has("serviceA")).toBe(true);
+    expect(serviceNodes.get("serviceA")).toContain("  serviceA(serviceA<br>name: service a<br>image: nginx:latest<br>ports: 80:80<br>depends_on: serviceB<br>volumes: vol1)\n  class serviceA container;");
+  });
+
   test('should include service definitions', () => {
     expect(diagram).toContain("serviceA(");
   });
