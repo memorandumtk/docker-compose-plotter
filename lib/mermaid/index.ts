@@ -96,11 +96,16 @@ export class ComposeMermaidGenerator {
     });
   }
 
+  private putBoldTag(name: string, fontSize: number = 18): string {
+    return `<b style="font-size:${fontSize}px">${name}</b>`
+  }
+
   /**
    * Wrap the service name with its label.
    */
   private putEdgeStringsForServiceNode(serviceName: string, label: string): string {
-    return `  ${serviceName}(${label})\n  class ${serviceName} container;`;
+    const formattedLabel = `${this.putBoldTag(serviceName)}<br>${label}`;
+    return `  ${serviceName}(${formattedLabel})\n  class ${serviceName} container;`;
   }
 
   // Build a flowchart node for a service.
@@ -108,24 +113,24 @@ export class ComposeMermaidGenerator {
   private buildServiceNode(serviceName: string, serviceConfig: any): string[] {
     const details: string[] = [];
     if (serviceConfig.name) {
-      details.push(`name: ${serviceConfig.name}`);
+      details.push(`${this.putBoldTag("name: ", 16)}${serviceConfig.name}`);
     }
     if (serviceConfig.image) {
-      details.push(`image: ${serviceConfig.image}`);
+      details.push(`${this.putBoldTag("image: ", 16)}${serviceConfig.image}`);
     }
     if (serviceConfig.ports) {
       const portsArray: string[] = [];
       serviceConfig.ports.forEach((port: string) => {
         portsArray.push(port);
       });
-      details.push(`ports: ${portsArray.join(", ")}`);
+      details.push(`${this.putBoldTag("ports: ", 16)}${portsArray.join(", ")}`);
     }
     if (serviceConfig.depends_on) {
-      details.push(`depends_on: ${serviceConfig.depends_on.join(", ")}`);
+      details.push(`${this.putBoldTag("depends_on: ", 16)}${serviceConfig.depends_on.join(", ")}`);
     }
-    details.unshift(serviceName);
     return details;
   }
+
 
   private processServiceRelationships(serviceName: string, serviceConfig: any, node: string[]): string[] {
     // Process depends_on relationships.
@@ -155,7 +160,7 @@ export class ComposeMermaidGenerator {
         }
       });
       if (inlineVolumes.length > 0) {
-        node.push(`volumes: ${inlineVolumes.join(', ')}`);
+        node.push(`${this.putBoldTag("volumes: ", 16)}${inlineVolumes.join(', ')}`);
       }
     }
     return node;
@@ -165,17 +170,18 @@ export class ComposeMermaidGenerator {
   private buildVolumeNode(volumeName: string, volumeConfig: any): string {
     const details: string[] = [];
     if (volumeConfig.external !== undefined) {
-      details.push(`external: ${volumeConfig.external ? "true" : "false"}`);
+      details.push(`${this.putBoldTag("external: ", 16)}${volumeConfig.external ? "true" : "false"}`);
     }
     if (volumeConfig.driver) {
-      details.push(`driver: ${volumeConfig.driver}`);
+      details.push(`${this.putBoldTag("driver: ", 16)}${volumeConfig.driver}`);
     }
     if (volumeConfig.name) {
-      details.push(`name: ${volumeConfig.name}`);
+      details.push(`${this.putBoldTag("name: ", 16)}${volumeConfig.name}`);
     }
-    const label = `volume-${volumeName}<br>${details.join("<br>")}`;
+    const label = `${this.putBoldTag("volume-" + volumeName)}<br>${details.join("<br>")}`;
     return `  volume-${volumeName}[(${label})]\n  class volume-${volumeName} volume`;
   }
+
 
   // Generate network visualizations.
   private generateNetworkSubgraphs(): string[] {
@@ -184,14 +190,16 @@ export class ComposeMermaidGenerator {
 
     this.networkSubgraphsMap.forEach((data, networkName) => {
       if (data.services.length === 0) {
-        const networkClass = `    network-${networkName}["network-${networkName}"]\n    class network-${networkName} network;`;
+        const boldName = this.putBoldTag(`network-${networkName}`)
+        const networkClass = `    network-${networkName}[${boldName}]\n    class network-${networkName} network;`;
         const driver = data.driver;
         if (!driverGroups.has(driver)) {
           driverGroups.set(driver, []);
         }
         driverGroups.get(driver)?.push(networkClass);
       } else {
-        let subgraphBlock = `    subgraph network-${networkName} ["network-${networkName}"]`;
+        const boldName = this.putBoldTag(`network-${networkName}`)
+        let subgraphBlock = `    subgraph network-${networkName} [${boldName}]`;
         data.services.forEach(serviceName => {
           const node = this.serviceNodes.get(serviceName);
           if (node) {
@@ -209,7 +217,9 @@ export class ComposeMermaidGenerator {
     });
 
     driverGroups.forEach((subgraphs, driver) => {
-      let outerBlock = `  subgraph ${driver} ["${driver} Networks"]`;
+      // TODO: make this name bold if possible
+      const boldName = `${driver} networks`
+      let outerBlock = `  subgraph ${driver} [${boldName}]`;
       subgraphs.forEach(block => {
         outerBlock += `\n${block}`;
       });
@@ -232,7 +242,7 @@ export class ComposeMermaidGenerator {
     });
 
     const styleDefinitions = [
-      `classDef container fill:coral,color:white;`,
+      `classDef container fill:coral,color:white,text-align:left;`,
       `classDef network fill:#cdffb2,color:black,stroke:#6eaa49;`,
       `classDef volume fill:skyblue,color:white;`,
     ];
