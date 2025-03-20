@@ -6,10 +6,10 @@ export interface ComposeFileData {
       name?: string;
       image?: string;
       build?: BuildInContainer;
-      depends_on?: string[];
+      depends_on?: string[] | { [key: string]: any };
       ports?: string[];
       networks?: string[];
-      volumes?: VolumeInContainer[];
+      volumes?: VolumeInContainer[] | { [key: string]: any };
       [key: string]: any; // Allow other optional properties
     };
   };

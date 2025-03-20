@@ -9,7 +9,7 @@ describe('ConfirmDiagramIsCreated', () => {
   let diagram: string;
   const outputFilePath = "diagram.mmd";
 
-  const sampleCompose = parseComposeFile("examples/react-rust-postgres/compose.yaml")
+  const sampleCompose = parseComposeFile("examples/nginx-golang-postgres/compose.yaml")
 
   generator = new ComposeMermaidGenerator(sampleCompose);
   diagram = generator.generateMermaidDiagram();

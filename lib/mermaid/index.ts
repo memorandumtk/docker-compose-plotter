@@ -104,7 +104,7 @@ export class ComposeMermaidGenerator {
    * Wrap the service name with its label.
    */
   private putEdgeStringsForServiceNode(serviceName: string, label: string): string {
-    const formattedLabel = `${this.putBoldTag(serviceName)}<br>${label}`;
+    const formattedLabel = `${this.putBoldTag(serviceName, 20)}<br>${label}`;
     return `  ${serviceName}(${formattedLabel})\n  class ${serviceName} container;`;
   }
 
@@ -125,9 +125,6 @@ export class ComposeMermaidGenerator {
       });
       details.push(`${this.putBoldTag("ports: ", 16)}${portsArray.join(", ")}`);
     }
-    if (serviceConfig.depends_on) {
-      details.push(`${this.putBoldTag("depends_on: ", 16)}${serviceConfig.depends_on.join(", ")}`);
-    }
     return details;
   }
 
@@ -135,9 +132,14 @@ export class ComposeMermaidGenerator {
   private processServiceRelationships(serviceName: string, serviceConfig: any, node: string[]): string[] {
     // Process depends_on relationships.
     if (serviceConfig.depends_on) {
-      serviceConfig.depends_on.forEach((dependency: string) => {
+      if (Array.isArray(serviceConfig.depends_on)) {
+        serviceConfig.depends_on.forEach((dependency: string) => {
+          this.relationships.push(`  ${serviceName} -- "depends on" --> ${dependency}`);
+        });
+      } else if (typeof serviceConfig.depends_on === "object") {
+        const dependency = Object.keys(serviceConfig.depends_on)[0]
         this.relationships.push(`  ${serviceName} -- "depends on" --> ${dependency}`);
-      });
+      }
     }
 
     // Process volumes.
@@ -156,12 +158,32 @@ export class ComposeMermaidGenerator {
             inlineVolumes.push(volume);
           }
         } else {
-          this.relationships.push(`  ${serviceName} -- "volume" --> volume-${volume.source}`);
+          const source = volume.source
+          const target = volume.target
+          const volumeLine = []
+          if (source) {
+            if (this.volumeNodesArray.find(node => node.includes(source))) {
+              this.relationships.push(`  ${serviceName} -- "volume" --> ${source}`);
+            } else {
+              volumeLine.push(`source - ${source}`)
+              inlineVolumes.push();
+            }
+          }
+          if (target) {
+            if (this.volumeNodesArray.find(node => node.includes(`volume-${target}`))) {
+              this.relationships.push(`  ${serviceName} -- "volume" --> volume-${target}`);
+            } else {
+              volumeLine.push(`target - ${source}`)
+            }
+          }
+          if (volumeLine.length) {
+            inlineVolumes.push(volumeLine.join(','))
+          }
+        };
+        if (inlineVolumes.length > 0) {
+          node.push(`${this.putBoldTag("volumes: ", 16)}${inlineVolumes.join(', ')}`);
         }
-      });
-      if (inlineVolumes.length > 0) {
-        node.push(`${this.putBoldTag("volumes: ", 16)}${inlineVolumes.join(', ')}`);
-      }
+      })
     }
     return node;
   }
@@ -169,14 +191,17 @@ export class ComposeMermaidGenerator {
   // Build a flowchart node for a volume.
   private buildVolumeNode(volumeName: string, volumeConfig: any): string {
     const details: string[] = [];
-    if (volumeConfig.external !== undefined) {
-      details.push(`${this.putBoldTag("external: ", 16)}${volumeConfig.external ? "true" : "false"}`);
-    }
-    if (volumeConfig.driver) {
-      details.push(`${this.putBoldTag("driver: ", 16)}${volumeConfig.driver}`);
-    }
-    if (volumeConfig.name) {
-      details.push(`${this.putBoldTag("name: ", 16)}${volumeConfig.name}`);
+    if (volumeConfig) {
+
+      if (volumeConfig.external !== undefined) {
+        details.push(`${this.putBoldTag("external: ", 16)}${volumeConfig.external ? "true" : "false"}`);
+      }
+      if (volumeConfig.driver) {
+        details.push(`${this.putBoldTag("driver: ", 16)}${volumeConfig.driver}`);
+      }
+      if (volumeConfig.name) {
+        details.push(`${this.putBoldTag("name: ", 16)}${volumeConfig.name}`);
+      }
     }
     const label = `${this.putBoldTag("volume-" + volumeName)}<br>${details.join("<br>")}`;
     return `  volume-${volumeName}[(${label})]\n  class volume-${volumeName} volume`;
