@@ -166,6 +166,7 @@ export class ComposeMermaidGenerator {
     if (serviceConfig.volumes) {
       const volumeSet = new Set<string>();
       serviceConfig.volumes.forEach((volume: VolumeInContainer) => {
+        const inlineVolume: string[] = []
         let source: string | undefined, target: string | undefined;
         if (typeof volume === "string") {
           [source, target] = volume.split(":");
@@ -177,17 +178,18 @@ export class ComposeMermaidGenerator {
           if (Array.from(this.volumeNodes.values()).find(node => node.id.includes(source))) {
             this.relationships.push(`  ${serviceName} -. "volume" .-> volume-${source}`);
           }
-          volumeSet.add(this.escapeEnvVariables(source));
+          inlineVolume.push(this.escapeEnvVariables(source));
         }
         if (target && !volumeSet.has(target)) {
           if (Array.from(this.volumeNodes.values()).find(node => node.id.includes(target))) {
             this.relationships.push(`  ${serviceName} -. "volume" .-> volume-${target}`);
           }
-          volumeSet.add(this.escapeEnvVariables(target));
+          inlineVolume.push(this.escapeEnvVariables(target));
         }
+        volumeSet.add(inlineVolume.join(": "))
       });
       if (volumeSet.size > 0) {
-        labelParts.set("volumes", `${this.putBoldTag("volumes: ", 16)}${Array.from(volumeSet).join(": ")}`);
+        labelParts.set("volumes", `${this.putBoldTag("volumes: ", 16)}${Array.from(volumeSet).join(", ")}`);
       }
     }
     return labelParts;

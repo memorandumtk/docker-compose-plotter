@@ -47,7 +47,6 @@ function execPromise(command: string): Promise<{ stdout: string; stderr: string 
 // https://github.com/docker/awesome-compose
 
 describe('ConfirmDiagramIsCreated', () => {
-
   const testFiles = findFilesRecursively("examples/awesome-compose", "compose.yaml");
   const fileMap = new Map<number, { outputFilePath: string; svgFilePath: string }>();
 

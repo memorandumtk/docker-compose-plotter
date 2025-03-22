@@ -16,11 +16,11 @@ describe('VolumeRelationship', () => {
       backend: {
         build: { context: 'backend', target: 'development' },
         networks: ['client-side', 'server-side'],
-        volumes: ['./backend/src:/code/src', 'backend-cache:/code/target'],
+        volumes: ['./backend/src:/code/src', 'backend-cache:/code/target', '/code/data:backend-storage'],
       },
     },
     networks: { "client-side": null, "server-side": null },
-    volumes: { 'backend-cache': {} }
+    volumes: { 'backend-cache': {}, 'backend-storage': {} }
   }
 
   generator = new ComposeMermaidGenerator(sampleCompose);
@@ -38,7 +38,7 @@ describe('VolumeRelationship', () => {
     const serviceNodes = generator.serviceNodesMap;
     expect(serviceNodes.has("backend")).toBe(true);
     const fronend = serviceNodes.get("backend")
-    expect(fronend?.labelParts.get("volumes")).toBe(`<b style=\"font-size:16px\">volumes: </b>./backend/src: /code/src: backend-cache: /code/target`);
+    expect(fronend?.labelParts.get("volumes")).toBe(`<b style=\"font-size:16px\">volumes: </b>./backend/src: /code/src, backend-cache: /code/target, /code/data: backend-storage`);
   });
 
   test('should include volume node definitions', () => {
@@ -46,10 +46,15 @@ describe('VolumeRelationship', () => {
     expect(volumeNodes.has("backend-cache")).toBe(true);
     const volumeBackendCache = volumeNodes.get("backend-cache")
     expect(volumeBackendCache?.id).toBe("volume-backend-cache");
+
+    expect(volumeNodes.has("backend-storage")).toBe(true);
+    const volumeBackendStorage = volumeNodes.get("backend-storage")
+    expect(volumeBackendStorage?.id).toBe("volume-backend-storage");
   });
 
   test('should include relationship for volume defined in volume section of service', () => {
     const relation = generator.relationshipList
     expect(relation).toContain(`  backend -. "volume" .-> volume-backend-cache`)
+    expect(relation).toContain(`  backend -. "volume" .-> volume-backend-storage`)
   });
 });
