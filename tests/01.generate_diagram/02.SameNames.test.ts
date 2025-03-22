@@ -47,9 +47,9 @@ describe('SameNames', () => {
   });
 
   test('should include volume node definitions', () => {
-    const volumeNodes = generator.volumeNodes;
-    expect(volumeNodes.length).toBe(1);
-    expect(volumeNodes[0]).toContain("volume-frontend");
+    const volumeNode = generator.volumeNodesMap.get("frontend");
+    expect(volumeNode).toBe(true);
+    expect(volumeNode?.labelParts).toContain("volume-frontend");
   });
 
   // after checking the value of Maps and Arrays, will also check the string generated at the end.

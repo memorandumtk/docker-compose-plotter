@@ -36,9 +36,10 @@ describe('VolumeRelationship', () => {
   });
 
   test('should include volume node definitions', () => {
-    const volumeNodes = generator.volumeNodes;
-    expect(volumeNodes.length).toBe(1);
-    expect(volumeNodes[0]).toContain("backend-cache");
+    const volumeNodes = generator.volumeNodesMap;
+    const volumeBackendCache = volumeNodes.get("backend-cache")
+    expect(volumeBackendCache).toBe(true);
+    expect(volumeBackendCache?.labelParts).toContain("backend-cache");
   });
 
 

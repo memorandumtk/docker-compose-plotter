@@ -15,9 +15,10 @@ describe('VolumeAvailableProperties', () => {
   diagram = generator.generateMermaidDiagram();
 
   test('should include volume node definitions', () => {
-    const volumeNodes = generator.volumeNodes;
-    expect(volumeNodes.length).toBe(1);
-    expect(volumeNodes[0]).toContain("net1");
+    const volumeNodes = generator.volumeNodesMap;
+    const volumeNet1 = volumeNodes.get("net1")
+    expect(volumeNet1).toBe(true);
+    expect(volumeNet1).toContain("net1");
     console.log({ line: 21, volumeNodes })
   });
 
