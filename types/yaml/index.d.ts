@@ -8,13 +8,19 @@ export interface ComposeFileData {
       build?: BuildInContainer;
       depends_on?: string[] | { [key: string]: any };
       ports?: string[];
-      networks?: string[];
+      networks?: string[] | NetworkInContainer
       volumes?: VolumeInContainer[] | { [key: string]: any };
       [key: string]: any; // Allow other optional properties
     };
   };
   networks?: NetworkObject,
   volumes?: VolumeObject
+}
+
+export type NetworkInContainer = {
+  [key: string]: {
+    ipv4_address: string
+  }
 }
 
 export type VolumeInContainer = string | {

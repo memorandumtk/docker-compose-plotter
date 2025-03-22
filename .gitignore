@@ -2,5 +2,6 @@ node_modules/
 dist/
 output_diagram.svg
 diagram.mmd
+outputs/
 
 **__snapshots__

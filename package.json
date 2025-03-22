@@ -8,6 +8,7 @@
     "build": "tsc --outDir dist",
     "exabuild": "node ./dist/bin/cli.js examples/react-rust-postgres/compose.yaml",
     "makesvg": "npx  mmdc -i diagram.mmd -o output_diagram.svg",
+    "custommakesvg": "./scripts/makesvg.sh",
     "fortest": "npm run build && npm run exabuild && npm run makesvg && wslview output_diagram.svg",
     "test": "jest",
     "testwatch": "jest --watchAll"

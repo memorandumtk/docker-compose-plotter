@@ -32,15 +32,15 @@ describe('NetworkAvailableProperties', () => {
   });
 
   test('class should be included', () => {
-    expect(diagram).toContain(`network-net1[\"network-net1\"]`);
+    expect(diagram).toContain(`class network-net1 network;`);
   });
 
   test('should have name', () => {
-    expect(diagram).toContain("network-net1[\"network-net1\"]");
+    expect(diagram).toContain(`network-net1[<b style=\"font-size:18px\">network-net1</b>]`);
   });
 
   test('should have driver', () => {
-    expect(diagram).toContain(`subgraph bridge [\"bridge Networks\"]`);
+    expect(diagram).toContain(` subgraph bridge [bridge networks]`);
   });
 });
 

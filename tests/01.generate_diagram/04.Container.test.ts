@@ -25,7 +25,7 @@ describe('ContainerAvailableProperties', () => {
   test('should include service definitions', () => {
     const serviceNodes = generator.serviceNodesMap;
     expect(serviceNodes.has("serviceA")).toBe(true);
-    expect(serviceNodes.get("serviceA")).toContain("  serviceA(serviceA<br>name: service a<br>image: nginx:latest<br>ports: 80:80<br>depends_on: serviceB<br>volumes: vol1)\n  class serviceA container;");
+    expect(serviceNodes.get("serviceA")).toContain("  serviceA(<b style=\"font-size:20px\">serviceA</b><br><b style=\"font-size:16px\">name: </b>service a<br><b style=\"font-size:16px\">image: </b>nginx:latest<br><b style=\"font-size:16px\">ports: </b>80:80<br><b style=\"font-size:16px\">volumes: </b>vol1)\n  class serviceA container;");
   });
 
   test('should include service definitions', () => {
@@ -33,19 +33,19 @@ describe('ContainerAvailableProperties', () => {
   });
 
   test('should have name', () => {
-    expect(diagram).toContain("<br>name: service a<br>");
+    expect(diagram).toContain("<b style=\"font-size:16px\">name: </b>service a");
   });
 
   test('should have ports', () => {
-    expect(diagram).toContain("<br>ports: 80:80<br>");
+    expect(diagram).toContain("<b style=\"font-size:16px\">ports: </b>80:80");
   });
 
   test('should have depends_on', () => {
-    expect(diagram).toContain("<br>depends_on: serviceB<br>");
+    expect(diagram).toContain("serviceA -- \"depends on\" --> serviceB");
   });
 
   test('should have volumes at the end', () => {
-    expect(diagram).toContain("<br>volumes: vol1)");
+    expect(diagram).toContain("<b style=\"font-size:16px\">volumes: </b>vol1");
   });
 });
 

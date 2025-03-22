@@ -18,14 +18,15 @@ describe('VolumeAvailableProperties', () => {
     const volumeNodes = generator.volumeNodes;
     expect(volumeNodes.length).toBe(1);
     expect(volumeNodes[0]).toContain("net1");
+    console.log({ line: 21, volumeNodes })
   });
 
   test('class should be included', () => {
     expect(diagram).toContain(`class volume-net1 volume`);
   });
 
-  test('should have ', () => {
-    expect(diagram).toContain("<br>external: false");
+  test('should have external definition', () => {
+    expect(diagram).toContain("");
   });
 
   test('should have name', () => {

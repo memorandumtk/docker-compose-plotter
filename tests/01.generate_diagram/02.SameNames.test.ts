@@ -58,7 +58,7 @@ describe('SameNames', () => {
   });
 
   test('should include network definitions', () => {
-    expect(diagram).toContain(`subgraph network-frontend [\"network-frontend\"]`);
+    expect(diagram).toContain(`sssss`);
   });
 
   test('should include relationship for volumes', () => {
