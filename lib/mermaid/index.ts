@@ -187,7 +187,7 @@ export class ComposeMermaidGenerator {
         }
       });
       if (volumeSet.size > 0) {
-        labelParts.set("volumes", `${this.putBoldTag("volumes: ", 16)}${Array.from(volumeSet).join(", ")}`);
+        labelParts.set("volumes", `${this.putBoldTag("volumes: ", 16)}${Array.from(volumeSet).join(": ")}`);
       }
     }
     return labelParts;
@@ -216,7 +216,7 @@ export class ComposeMermaidGenerator {
   }
 
   // Generate network visualizations.
-  private generateNetworkSubgraphs(): string[] {
+  public generateNetworkSubgraphs(): string[] {
     const networkVisuals: string[] = [];
     const driverGroups: Map<string, string[]> = new Map();
 
@@ -225,6 +225,8 @@ export class ComposeMermaidGenerator {
       const detailStr = Array.from(data.details.entries())
         .map(([key, value]) => `${key}: ${value}`)
         .join("<br>");
+      // If if has service nodes, make it a node,
+      // otherwise, make it a subgraph
       if (data.services.size === 0) {
         const boldName = this.putBoldTag(`network-${networkName}`) + (detailStr ? `<br>${detailStr}` : "");
         const networkNode = `    network-${networkName}[${boldName}]\n    class network-${networkName} network;`;

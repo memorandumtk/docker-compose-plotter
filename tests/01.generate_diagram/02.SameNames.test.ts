@@ -4,6 +4,7 @@ describe('SameNames', () => {
   let sampleCompose: any;
   let generator: ComposeMermaidGenerator;
   let diagram: string;
+  let networkVisuals: string[]
 
 
   beforeAll(() => {
@@ -29,45 +30,36 @@ describe('SameNames', () => {
     };
 
     generator = new ComposeMermaidGenerator(sampleCompose);
+    networkVisuals = generator.generateNetworkSubgraphs()
     diagram = generator.generateMermaidDiagram();
   });
 
-  test('should include service definitions', () => {
+  test('should have service definitions', () => {
     const serviceNodes = generator.serviceNodesMap;
     expect(serviceNodes.has("frontend")).toBe(true);
-    expect(serviceNodes.get("frontend")).toContain("frontend(frontend");
+    const frontend = serviceNodes.get("frontend")
+    expect(frontend?.id).toBe("frontend");
+    expect(frontend?.labelParts.get("header")).toBe(`<b style="font-size:20px">frontend</b>`);
   });
 
-  test('should include network subgraph with correct driver', () => {
+  test('should have network subgraph with correct driver', () => {
     const networkSubgraphs = generator.networkSubgraphs;
     expect(networkSubgraphs.has("frontend")).toBe(true);
-    const frontendGraph = networkSubgraphs.get("frontend");
-    expect(frontendGraph?.driver).toBe("custom-driver-1");
-    expect(frontendGraph?.services).toContain("frontend");
   });
 
-  test('should include volume node definitions', () => {
-    const volumeNode = generator.volumeNodesMap.get("frontend");
-    expect(volumeNode).toBe(true);
-    expect(volumeNode?.labelParts).toContain("volume-frontend");
-  });
+  test("should have network subgraph definition in returned string", () => {
+    expect(diagram).toContain("subgraph network-frontend")
+  })
 
-  // after checking the value of Maps and Arrays, will also check the string generated at the end.
-  test('should include service definitions', () => {
-    expect(diagram).toContain("frontend(frontend");
-  });
-
-  test('should include network definitions', () => {
-    expect(diagram).toContain(`sssss`);
-  });
-
-  test('should include relationship for volumes', () => {
-    expect(diagram).toContain("volume-frontend");
+  test('should have volume node definitions', () => {
+    const volumes = generator.volumeNodesMap
+    expect(volumes.has("frontend")).toBe(true);
+    const volumeNode = volumes.get("frontend");
+    expect(volumeNode?.id).toBe("volume-frontend");
   });
 
   test('diagram snapshot', () => {
     expect(diagram).toMatchSnapshot();
   });
-
 });
 

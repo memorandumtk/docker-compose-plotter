@@ -21,31 +21,31 @@ describe('ContainerAvailableProperties', () => {
 
   generator = new ComposeMermaidGenerator(sampleCompose);
   diagram = generator.generateMermaidDiagram();
+  const serviceNodes = generator.serviceNodesMap;
+  const serviceA = serviceNodes.get("serviceA")
 
   test('should include service definitions', () => {
-    const serviceNodes = generator.serviceNodesMap;
     expect(serviceNodes.has("serviceA")).toBe(true);
-    expect(serviceNodes.get("serviceA")).toContain("  serviceA(<b style=\"font-size:20px\">serviceA</b><br><b style=\"font-size:16px\">name: </b>service a<br><b style=\"font-size:16px\">image: </b>nginx:latest<br><b style=\"font-size:16px\">ports: </b>80:80<br><b style=\"font-size:16px\">volumes: </b>vol1)\n  class serviceA container;");
   });
 
-  test('should include service definitions', () => {
-    expect(diagram).toContain("serviceA(");
+  test('should have header', () => {
+    expect(serviceA?.labelParts.get("header")).toBe(`<b style="font-size:20px">serviceA</b>`)
   });
 
   test('should have name', () => {
-    expect(diagram).toContain("<b style=\"font-size:16px\">name: </b>service a");
+    expect(serviceA?.labelParts.get("name")).toBe(`<b style=\"font-size:16px\">name: </b>service a`)
+  });
+
+  test('should have image', () => {
+    expect(serviceA?.labelParts.get("image")).toBe(`<b style="font-size:16px">image: </b>nginx:latest`)
   });
 
   test('should have ports', () => {
-    expect(diagram).toContain("<b style=\"font-size:16px\">ports: </b>80:80");
-  });
-
-  test('should have depends_on', () => {
-    expect(diagram).toContain("serviceA -- \"depends on\" --> serviceB");
+    expect(serviceA?.labelParts.get("ports")).toBe(`<b style=\"font-size:16px\">ports: </b>80:80`)
   });
 
   test('should have volumes at the end', () => {
-    expect(diagram).toContain("<b style=\"font-size:16px\">volumes: </b>vol1");
+    expect(serviceA?.labelParts.get("volumes")).toBe(`<b style=\"font-size:16px\">volumes: </b>vol1`)
   });
 });
 

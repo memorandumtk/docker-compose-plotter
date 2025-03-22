@@ -49,7 +49,6 @@ describe('ConfirmDiagramIsCreated', () => {
 
 
   testFiles.forEach((filePath, index) => {
-    if (index < 21 || 25 < index) return
 
     const outputFilePath = `outputs/diagram_${index}.mmd`;
     const svgFilePath = `outputs/diagram_${index}.svg`;
