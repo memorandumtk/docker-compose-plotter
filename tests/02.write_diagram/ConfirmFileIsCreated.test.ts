@@ -42,6 +42,10 @@ function execPromise(command: string): Promise<{ stdout: string; stderr: string 
 }
 
 
+// this test is for checking the examples in examples/awesome-compose directory can be rendered as svg correctly.
+// awesome-compose projects are copied from:
+// https://github.com/docker/awesome-compose
+
 describe('ConfirmDiagramIsCreated', () => {
 
   const testFiles = findFilesRecursively("examples/awesome-compose", "compose.yaml");

@@ -3,5 +3,6 @@ dist/
 output_diagram.svg
 diagram.mmd
 outputs/
+coverage/
 
 **__snapshots__

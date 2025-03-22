@@ -12,6 +12,7 @@
     "view": "wslview output_diagram.svg",
     "fortest": "npm run build && npm run exabuild && npm run makesvg",
     "test": "jest",
+    "coverage": "jest --coverage",
     "testwatch": "jest --watchAll"
   },
   "bin": {
