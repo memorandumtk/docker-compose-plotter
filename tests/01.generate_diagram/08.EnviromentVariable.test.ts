@@ -11,10 +11,10 @@ describe('ContainerAvailableProperties', () => {
       serviceA: {
         name: "service a",
         image: "nginx:latest",
-        ports: ["80:80"],
+        ports: ["${RECIEVE_PORT: OPEN_PORT}"],
         depends_on: ["serviceB"],
         networks: ["net1"],
-        volumes: ["vol1"]
+        volumes: ["${TARGET_VOLUME}"]
       },
     },
   };
@@ -41,11 +41,11 @@ describe('ContainerAvailableProperties', () => {
   });
 
   test('should have ports', () => {
-    expect(serviceA?.labelParts.get("ports")).toBe(`<b style=\"font-size:16px\">ports: </b>80:80`)
+    expect(serviceA?.labelParts.get("ports")).toBe(`<b style=\"font-size:16px\">ports: </b>#36;#123;RECIEVE_PORT: OPEN_PORT#125;`)
   });
 
   test('should have volumes at the end', () => {
-    expect(serviceA?.labelParts.get("volumes")).toBe(`<b style=\"font-size:16px\">volumes: </b>vol1`)
+    expect(serviceA?.labelParts.get("volumes")).toBe(`<b style=\"font-size:16px\">volumes: </b>#36;#123;TARGET_VOLUME#125;`)
   });
 });
 

@@ -1,11 +1,10 @@
 
 import * as fs from 'fs';
 
-export const writeMermaidDiagramToFile = (diagramText: string) => {
-  const FILENAME = "diagram.mmd";
+export const writeMermaidDiagramToFile = (diagramText: string, filename: string = "diagram.mmd") => {
   try {
-    fs.writeFileSync(FILENAME, diagramText);
+    fs.writeFileSync(filename, diagramText);
   } catch (e) {
-    throw new Error(`Failed to write data to a file: ${FILENAME}`)
+    throw new Error(`Failed to write data to a file: ${filename}`)
   }
 }
