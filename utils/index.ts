@@ -1,2 +1,2 @@
-export const putEscapeCharactersOnBothSide = (word: string = '') =>
+export const putEscapeCharactersOnBothSide = (word: string = "") =>
   `\`${word}\``;

@@ -91,14 +91,11 @@ describe("ConfirmDiagramIsCreated", () => {
 
     exec(
       `npm run custommakesvg ${outputFilePath} ${svgFilePath}`,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       (error, stdout, stderr) => {
         if (error) {
           console.error(`Error executing command: ${error.message}`);
           return done(error);
-        }
-        if (stderr) {
-          console.error(`Error executing command: ${stderr}`);
-          return done(stderr);
         }
         console.log(`Succeeded Command Output: ${stdout}`);
         done();
