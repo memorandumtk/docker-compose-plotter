@@ -21,11 +21,6 @@
   "bin": {
     "docker-compose-plotter": "./bin/cli.js"
   },
-  "lint-staged": {
-    "**/*.{js,ts,tsx}": [
-      "eslint --fix"
-    ]
-  },
   "keywords": [],
   "author": "Kosuke Takagi",
   "license": "ISC",
