@@ -1,19 +1,15 @@
-import { DescriptionOfColors } from '../../constants';
-import { ComposeMermaidGenerator } from '../../lib/mermaid/index';
+import { ComposeMermaidGenerator } from "../../lib/mermaid/index";
+import { ComposeFileData } from "../../types/yaml";
 
-describe('Header', () => {
-  let sampleCompose: any;
-  let generator: ComposeMermaidGenerator;
-  let diagram: string;
-
-  sampleCompose = {
+describe("Header", () => {
+  const sampleCompose: ComposeFileData = {
     name: "Header",
   };
 
-  generator = new ComposeMermaidGenerator(sampleCompose);
-  diagram = generator.generateMermaidDiagram();
+  const generator = new ComposeMermaidGenerator(sampleCompose);
+  const diagram = generator.generateMermaidDiagram();
 
-  test('should include network subgraph with correct driver', () => {
+  test("should include network subgraph with correct driver", () => {
     const header = generator.headerList;
     expect(header).toContain("---");
     expect(header).toContain("title: Header");
@@ -21,12 +17,11 @@ describe('Header', () => {
     expect(header).toContain("graph LR");
   });
 
-  test('should have name', () => {
+  test("should have name", () => {
     expect(diagram).toContain("title: Header");
   });
 
-  test('should have graph LR decralation', () => {
-    expect(diagram).toContain("graph LR")
+  test("should have graph LR decralation", () => {
+    expect(diagram).toContain("graph LR");
   });
 });
-

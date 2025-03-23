@@ -20,7 +20,7 @@ export class ComposeMermaidGenerator {
   private networkSubgraphsMap: Map<string, NetworkSubgraphData> = new Map();
   private volumeNodes: Map<string, MermaidNode> = new Map();
 
-  constructor(baseCompose: ComposeFileData, overrideCompose?: ComposeFileData) {
+  constructor(baseCompose: ComposeFileData) {
     this.composeData = baseCompose;
     this.processData();
     console.dir(this.composeData, { depth: null });
@@ -48,7 +48,9 @@ export class ComposeMermaidGenerator {
   }
 
   private makeHeader(): string[] {
-    const titleStr = this.composeData.name ? `title: ${this.composeData.name}` : "";
+    const titleStr = this.composeData.name
+      ? `title: ${this.composeData.name}`
+      : "";
     return [
       `---`,
       `${titleStr}`,
@@ -74,7 +76,11 @@ export class ComposeMermaidGenerator {
         driver = networkConfig.driver;
       }
       // Store both details and services as Maps.
-      this.networkSubgraphsMap.set(networkName, { details, services: new Map<string, string>(), driver });
+      this.networkSubgraphsMap.set(networkName, {
+        details,
+        services: new Map<string, string>(),
+        driver,
+      });
     });
 
     // Process volumes: store each volume node in the volumeNodes Map.
@@ -104,13 +110,17 @@ export class ComposeMermaidGenerator {
           });
         }
       }
-      const processedLabelParts = this.processServiceRelationships(serviceName, serviceConfig, labelParts);
+      const processedLabelParts = this.processServiceRelationships(
+        serviceName,
+        serviceConfig,
+        labelParts,
+      );
       // Create a Mermaid node for the service.
       const mermaidNode: MermaidNode = {
         id: serviceName,
         labelParts: new Map<string, string>([
           ["header", this.putBoldTag(serviceName, 20)],
-          ...Array.from(processedLabelParts)
+          ...Array.from(processedLabelParts),
         ]),
         className: "container",
       };
@@ -123,7 +133,7 @@ export class ComposeMermaidGenerator {
    * with a sequence that Mermaid will render literally.
    */
   private escapeEnvVariables(input: string): string {
-    return input.replace(/\$\{([^}]+)\}/g, '#36;#123;$1#125;');
+    return input.replace(/\$\{([^}]+)\}/g, "#36;#123;$1#125;");
   }
 
   private putBoldTag(name: string, fontSize: number = 18): string {
@@ -131,34 +141,54 @@ export class ComposeMermaidGenerator {
   }
 
   // Build label parts for a service node as a Map.
-  private buildServiceNode(serviceName: string, serviceConfig: any): Map<string, string> {
+  private buildServiceNode(
+    serviceName: string,
+    serviceConfig: any,
+  ): Map<string, string> {
     const labelParts = new Map<string, string>();
     if (serviceConfig.name) {
-      labelParts.set("name", `${this.putBoldTag("name: ", 16)}${this.escapeEnvVariables(serviceConfig.name)}`);
+      labelParts.set(
+        "name",
+        `${this.putBoldTag("name: ", 16)}${this.escapeEnvVariables(serviceConfig.name)}`,
+      );
     }
     if (serviceConfig.image) {
-      labelParts.set("image", `${this.putBoldTag("image: ", 16)}${this.escapeEnvVariables(serviceConfig.image)}`);
+      labelParts.set(
+        "image",
+        `${this.putBoldTag("image: ", 16)}${this.escapeEnvVariables(serviceConfig.image)}`,
+      );
     }
     if (serviceConfig.ports) {
       const portsArray: string[] = [];
       serviceConfig.ports.forEach((port: string) => {
         portsArray.push(this.escapeEnvVariables(port));
       });
-      labelParts.set("ports", `${this.putBoldTag("ports: ", 16)}${portsArray.join(", ")}`);
+      labelParts.set(
+        "ports",
+        `${this.putBoldTag("ports: ", 16)}${portsArray.join(", ")}`,
+      );
     }
     return labelParts;
   }
 
-  private processServiceRelationships(serviceName: string, serviceConfig: any, labelParts: Map<string, string>): Map<string, string> {
+  private processServiceRelationships(
+    serviceName: string,
+    serviceConfig: any,
+    labelParts: Map<string, string>,
+  ): Map<string, string> {
     // Process depends_on relationships.
     if (serviceConfig.depends_on) {
       if (Array.isArray(serviceConfig.depends_on)) {
         serviceConfig.depends_on.forEach((dependency: string) => {
-          this.relationships.push(`  ${serviceName} -- "depends on" --> ${dependency}`);
+          this.relationships.push(
+            `  ${serviceName} -- "depends on" --> ${dependency}`,
+          );
         });
       } else if (typeof serviceConfig.depends_on === "object") {
         const dependency = Object.keys(serviceConfig.depends_on)[0];
-        this.relationships.push(`  ${serviceName} -- "depends on" --> ${dependency}`);
+        this.relationships.push(
+          `  ${serviceName} -- "depends on" --> ${dependency}`,
+        );
       }
     }
 
@@ -166,7 +196,7 @@ export class ComposeMermaidGenerator {
     if (serviceConfig.volumes) {
       const volumeSet = new Set<string>();
       serviceConfig.volumes.forEach((volume: VolumeInContainer) => {
-        const inlineVolume: string[] = []
+        const inlineVolume: string[] = [];
         let source: string | undefined, target: string | undefined;
         if (typeof volume === "string") {
           [source, target] = volume.split(":");
@@ -175,21 +205,36 @@ export class ComposeMermaidGenerator {
           target = volume.target;
         }
         if (source && !volumeSet.has(source)) {
-          if (Array.from(this.volumeNodes.values()).find(node => node.id.includes(source))) {
-            this.relationships.push(`  ${serviceName} -. "volume" .-> volume-${source}`);
+          if (
+            Array.from(this.volumeNodes.values()).find((node) =>
+              node.id.includes(source),
+            )
+          ) {
+            this.relationships.push(
+              `  ${serviceName} -. "volume" .-> volume-${source}`,
+            );
           }
           inlineVolume.push(this.escapeEnvVariables(source));
         }
         if (target && !volumeSet.has(target)) {
-          if (Array.from(this.volumeNodes.values()).find(node => node.id.includes(target))) {
-            this.relationships.push(`  ${serviceName} -. "volume" .-> volume-${target}`);
+          if (
+            Array.from(this.volumeNodes.values()).find((node) =>
+              node.id.includes(target),
+            )
+          ) {
+            this.relationships.push(
+              `  ${serviceName} -. "volume" .-> volume-${target}`,
+            );
           }
           inlineVolume.push(this.escapeEnvVariables(target));
         }
-        volumeSet.add(inlineVolume.join(": "))
+        volumeSet.add(inlineVolume.join(": "));
       });
       if (volumeSet.size > 0) {
-        labelParts.set("volumes", `${this.putBoldTag("volumes: ", 16)}${Array.from(volumeSet).join(", ")}`);
+        labelParts.set(
+          "volumes",
+          `${this.putBoldTag("volumes: ", 16)}${Array.from(volumeSet).join(", ")}`,
+        );
       }
     }
     return labelParts;
@@ -201,13 +246,22 @@ export class ComposeMermaidGenerator {
     labelParts.set("header", this.putBoldTag("volume-" + volumeName));
     if (volumeConfig) {
       if (volumeConfig.external !== undefined) {
-        labelParts.set("external", `${this.putBoldTag("external: ", 16)}${volumeConfig.external ? "true" : "false"}`);
+        labelParts.set(
+          "external",
+          `${this.putBoldTag("external: ", 16)}${volumeConfig.external ? "true" : "false"}`,
+        );
       }
       if (volumeConfig.driver) {
-        labelParts.set("driver", `${this.putBoldTag("driver: ", 16)}${this.escapeEnvVariables(volumeConfig.driver)}`);
+        labelParts.set(
+          "driver",
+          `${this.putBoldTag("driver: ", 16)}${this.escapeEnvVariables(volumeConfig.driver)}`,
+        );
       }
       if (volumeConfig.name) {
-        labelParts.set("name", `${this.putBoldTag("name: ", 16)}${this.escapeEnvVariables(volumeConfig.name)}`);
+        labelParts.set(
+          "name",
+          `${this.putBoldTag("name: ", 16)}${this.escapeEnvVariables(volumeConfig.name)}`,
+        );
       }
     }
     return {
@@ -230,7 +284,9 @@ export class ComposeMermaidGenerator {
       // If if has service nodes, make it a node,
       // otherwise, make it a subgraph
       if (data.services.size === 0) {
-        const boldName = this.putBoldTag(`network-${networkName}`) + (detailStr ? `<br>${detailStr}` : "");
+        const boldName =
+          this.putBoldTag(`network-${networkName}`) +
+          (detailStr ? `<br>${detailStr}` : "");
         const networkNode = `    network-${networkName}[${boldName}]\n    class network-${networkName} network;`;
         const driver = data.driver;
         if (!driverGroups.has(driver)) {
@@ -238,7 +294,9 @@ export class ComposeMermaidGenerator {
         }
         driverGroups.get(driver)?.push(networkNode);
       } else {
-        const headerLabel = this.putBoldTag(`network-${networkName}`) + (detailStr ? `<br>${detailStr}` : "");
+        const headerLabel =
+          this.putBoldTag(`network-${networkName}`) +
+          (detailStr ? `<br>${detailStr}` : "");
         let subgraphBlock = `    subgraph network-${networkName} [${headerLabel}]`;
         data.services.forEach((serviceName) => {
           const node = this.serviceNodes.get(serviceName);
@@ -258,7 +316,7 @@ export class ComposeMermaidGenerator {
     driverGroups.forEach((subgraphs, driver) => {
       const boldName = `networks in ${driver}`;
       let outerBlock = `  subgraph ${driver} [${boldName}]`;
-      subgraphs.forEach(block => {
+      subgraphs.forEach((block) => {
         outerBlock += `\n${block}`;
       });
       outerBlock += `\n  end`;
@@ -278,7 +336,7 @@ export class ComposeMermaidGenerator {
     const servicesNotInSubgraph: string[] = [];
     this.serviceNodes.forEach((node, serviceName) => {
       const isInSubgraph = Array.from(this.networkSubgraphsMap.values()).some(
-        subgraphData => subgraphData.services.has(serviceName)
+        (subgraphData) => subgraphData.services.has(serviceName),
       );
       if (!isInSubgraph) {
         servicesNotInSubgraph.push(this.convertMermaidNodeToString(node));
@@ -295,7 +353,9 @@ export class ComposeMermaidGenerator {
       ...this.header,
       ...servicesNotInSubgraph,
       ...this.generateNetworkSubgraphs(),
-      ...Array.from(this.volumeNodes.values()).map(this.convertMermaidNodeToString.bind(this)),
+      ...Array.from(this.volumeNodes.values()).map(
+        this.convertMermaidNodeToString.bind(this),
+      ),
       ...this.relationships,
       ...styleDefinitions,
     ].join("\n");
