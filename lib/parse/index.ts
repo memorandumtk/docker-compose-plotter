@@ -1,18 +1,32 @@
-import * as fs from 'fs';
-import * as yaml from 'js-yaml';
-import type { ComposeFileData } from '../../types/yaml';
+import * as fs from "fs";
+import * as yaml from "js-yaml";
+import type { ComposeFileData } from "../../types/yaml";
 
 export const parseComposeFile = (filePath: string): ComposeFileData => {
   try {
-    const fileContents = fs.readFileSync(filePath, 'utf8');
+    const fileContents = fs.readFileSync(filePath, "utf8");
     const data = yaml.load(fileContents);
     if (!data) {
-      console.log({ notExpectedDataType: data })
-      throw new Error("data's type was not expected.")
+      console.log({ notExpectedDataType: data });
+      throw new Error("data's type was not expected.");
     } else {
-      return data
+      return data;
     }
   } catch (e: any) {
     throw new Error(`Failed to parse YAML: ${e.message}`);
   }
-}
+};
+
+export const parseComposeConfigStdOut = (stdout: string): ComposeFileData => {
+  try {
+    const data = yaml.load(stdout);
+    if (!data) {
+      console.log({ notExpectedDataType: data });
+      throw new Error("data's type was not expected.");
+    } else {
+      return data;
+    }
+  } catch (e: any) {
+    throw new Error(`Failed to parse YAML: ${e.message}`);
+  }
+};
