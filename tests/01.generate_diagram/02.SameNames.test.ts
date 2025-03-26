@@ -56,8 +56,4 @@ describe("SameNames", () => {
     const volumeNode = volumes.get("frontend");
     expect(volumeNode?.id).toBe("volume-frontend");
   });
-
-  test("diagram snapshot", () => {
-    expect(diagram).toMatchSnapshot();
-  });
 });

@@ -29,10 +29,11 @@ program
         }
         try {
           const composeObj = parseComposeConfigStdOut(stdout);
+          // console.dir(composeObj, { depth: null });
           const generatorClass = new ComposeMermaidGenerator(composeObj);
           const diagram = generatorClass.generateMermaidDiagram();
-          console.log({ diagram });
-          writeMermaidDiagramToFile(diagram);
+          const result = writeMermaidDiagramToFile(diagram);
+          process.stdout.write(result);
         } catch (err: any) {
           console.error(err.message);
           process.exit(1);
@@ -45,7 +46,8 @@ program
         const generatorClass = new ComposeMermaidGenerator(composeObj);
         const diagram = generatorClass.generateMermaidDiagram();
         console.log({ diagram });
-        writeMermaidDiagramToFile(diagram);
+        const result = writeMermaidDiagramToFile(diagram);
+        process.stdout.write(result);
       } catch (err: any) {
         console.error(err.message);
         process.exit(1);

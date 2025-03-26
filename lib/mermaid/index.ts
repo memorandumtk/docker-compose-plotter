@@ -1,4 +1,8 @@
-import { ComposeFileData, VolumeInContainer } from "../../types/yaml";
+import {
+  ComposeFileData,
+  PortInContainer,
+  VolumeInContainer,
+} from "../../types/yaml";
 
 interface NetworkSubgraphData {
   details: Map<string, string>;
@@ -23,7 +27,7 @@ export class ComposeMermaidGenerator {
   constructor(baseCompose: ComposeFileData) {
     this.composeData = baseCompose;
     this.processData();
-    console.dir(this.composeData, { depth: null });
+    // console.dir(this.composeData, { depth: null });
   }
 
   // Getters for testing and inspection.
@@ -132,8 +136,16 @@ export class ComposeMermaidGenerator {
    * Escape any environment variable patterns like ${SAMPLE_VALUE} by replacing them
    * with a sequence that Mermaid will render literally.
    */
-  private escapeEnvVariables(input: string): string {
-    return input.replace(/\$\{([^}]+)\}/g, "#36;#123;$1#125;");
+  private escapeEnvVariables(input: string | null | number): string {
+    try {
+      if (input === null) return "";
+      if (typeof input === "number") return input.toString();
+      return input.replace(/\$\{([^}]+)\}/g, "#36;#123;$1#125;");
+    } catch (e) {
+      console.warn(e);
+      console.warn(input);
+      return "";
+    }
   }
 
   private putBoldTag(name: string, fontSize: number = 18): string {
@@ -159,10 +171,21 @@ export class ComposeMermaidGenerator {
       );
     }
     if (serviceConfig.ports) {
+      const ports = serviceConfig.ports;
       const portsArray: string[] = [];
-      serviceConfig.ports.forEach((port: string) => {
-        portsArray.push(this.escapeEnvVariables(port));
-      });
+      if (Array.isArray(ports)) {
+        ports.forEach((port: string | PortInContainer) => {
+          if (typeof port === "string") {
+            portsArray.push(this.escapeEnvVariables(port));
+          } else {
+            portsArray.push(
+              this.escapeEnvVariables(port.target ?? "") +
+                ":" +
+                this.escapeEnvVariables(port.published ?? ""),
+            );
+          }
+        });
+      }
       labelParts.set(
         "ports",
         `${this.putBoldTag("ports: ", 16)}${portsArray.join(", ")}`,
@@ -287,17 +310,19 @@ export class ComposeMermaidGenerator {
         const boldName =
           this.putBoldTag(`network-${networkName}`) +
           (detailStr ? `<br>${detailStr}` : "");
-        const networkNode = `    network-${networkName}[${boldName}]\n    class network-${networkName} network;`;
+        const networkNode = `    network-${networkName}[${boldName}]\n      class network-${networkName} network;`;
         const driver = data.driver;
         if (!driverGroups.has(driver)) {
           driverGroups.set(driver, []);
         }
         driverGroups.get(driver)?.push(networkNode);
       } else {
-        const headerLabel =
-          this.putBoldTag(`network-${networkName}`) +
-          (detailStr ? `<br>${detailStr}` : "");
-        let subgraphBlock = `    subgraph network-${networkName} [${headerLabel}]`;
+        // // this is for case that wants to include the network name
+        // const headerLabel =
+        //   this.putBoldTag(`network-${networkName}`) +
+        //   (detailStr ? `<br>${detailStr}` : "");
+        // let subgraphBlock = `    subgraph network-${networkName} [${headerLabel}]`;
+        let subgraphBlock = `    subgraph network-${networkName}`;
         data.services.forEach((serviceName) => {
           const node = this.serviceNodes.get(serviceName);
           if (node) {

@@ -6,6 +6,7 @@ export const writeMermaidDiagramToFile = (
 ) => {
   try {
     fs.writeFileSync(filename, diagramText);
+    return `${filename} was successfully saved.`;
   } catch (e) {
     const error = e as Error; // Type assertion
     throw new Error(
