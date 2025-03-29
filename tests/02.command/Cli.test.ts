@@ -4,6 +4,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 
 const cliPath = join(__dirname, "../../dist/bin/cli.js"); // Adjust path if needed
+const DEFAULT_FILE = "docker-compose.yml";
 const DEFAULT_OUTPUT_FILE = "diagram.mmd";
 
 describe("CLI Tests Help", () => {
@@ -18,14 +19,15 @@ describe("CLI Tests Help", () => {
   });
 });
 
-describe("CLI Tests to contents of a file 'docker-compose.yml'", () => {
+describe("CLI Tests for a file 'docker-compose.yml'", () => {
   it("should return the output retrived from the default docker-compose.yml file", (done) => {
-    const defaultFile = "docker-compose.yml";
-    exec(`node ${cliPath} ${defaultFile}`, (error, stdout, stderr) => {
+    exec(`node ${cliPath} ${DEFAULT_FILE}`, (error, stdout, stderr) => {
       console.warn({ stderr, stdout });
       expect(error).toBeNull();
       expect(stderr).toBe("");
-      expect(stdout).toContain("diagram.mmd was successfully saved");
+      expect(stdout).toContain(
+        `${DEFAULT_FILE} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
+      );
       done();
     });
   });
@@ -46,14 +48,16 @@ describe("CLI Tests to contents of a file 'docker-compose.yml'", () => {
   });
 });
 
-describe("CLI Tests to parse and write contents of a specified file", () => {
+describe("CLI Tests for a specified file", () => {
   it("should return the suceeded output that represents parsing the specified docker file", (done) => {
     const dockerFilePath = "examples/awesome-compose/angular/compose.yaml";
     exec(`node ${cliPath} ${dockerFilePath}`, (error, stdout, stderr) => {
       console.warn({ stderr, stdout });
       expect(error).toBeNull();
       expect(stderr).toBe("");
-      expect(stdout).toContain(`${DEFAULT_OUTPUT_FILE} was successfully saved`);
+      expect(stdout).toContain(
+        `${dockerFilePath} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
+      );
       done();
     });
   });
@@ -67,20 +71,24 @@ describe("CLI Tests to parse and write contents of a specified file", () => {
         console.warn({ stderr, stdout });
         expect(error).toBeNull();
         expect(stderr).toBe("");
-        expect(stdout).toContain(`${outputFilePath} was successfully saved`);
+        expect(stdout).toContain(
+          `${dockerFilePath} was successfully saved to ${outputFilePath}`,
+        );
         done();
       },
     );
   });
 });
 
-describe("CLI tests to parse and write contents of docker config", () => {
+describe("CLI tests for specified docker config", () => {
   it("should return the output retrived from the default docker-compose.yml file with config option", (done) => {
     exec(`node ${cliPath} -c`, (error, stdout, stderr) => {
       console.warn({ stderr, stdout });
       expect(error).toBeNull();
       expect(stderr).toBe("");
-      expect(stdout).toContain(`${DEFAULT_OUTPUT_FILE} was successfully saved`);
+      expect(stdout).toContain(
+        `Config of Default file: ${DEFAULT_FILE} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
+      );
       done();
     });
   });
@@ -91,7 +99,9 @@ describe("CLI tests to parse and write contents of docker config", () => {
       console.warn({ stderr, stdout });
       expect(error).toBeNull();
       expect(stderr).toBe("");
-      expect(stdout).toContain(`${DEFAULT_OUTPUT_FILE} was successfully saved`);
+      expect(stdout).toContain(
+        `Config of ${dockerFilePath} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
+      );
       done();
     });
   });
@@ -105,7 +115,9 @@ describe("CLI tests to parse and write contents of docker config", () => {
         console.warn({ stderr, stdout });
         expect(error).toBeNull();
         expect(stderr).toBe("");
-        expect(stdout).toContain(`${outputFilePath} was successfully saved`);
+        expect(stdout).toContain(
+          `Config of ${dockerFilePath} was successfully saved to ${outputFilePath}`,
+        );
         done();
       },
     );
