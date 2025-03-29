@@ -5,9 +5,9 @@ export interface ComposeFileData {
     [serviceName: string]: {
       name?: string;
       image?: string;
-      build?: BuildInContainer;
+      build?: string | BuildInContainer;
       depends_on?: string[] | { [key: string]: any };
-      ports?: string[];
+      ports?: string[] | PortInContainer[];
       networks?: string[] | NetworkInContainer;
       volumes?: VolumeInContainer[] | { [key: string]: any };
       [key: string]: any; // Allow other optional properties
@@ -32,13 +32,18 @@ export type VolumeInContainer =
       read_only?: boolean;
     };
 
-export type BuildInContainer =
-  | string
-  | {
-      context: string;
-      target: string;
-      [key: string]: any;
-    };
+export type BuildInContainer = {
+  context: string;
+  target: string;
+  [key: string]: any;
+};
+
+export type PortInContainer = {
+  mode?: string;
+  target?: number;
+  published?: number;
+  protocol?: string;
+};
 
 export type NetworkObject = {
   [networkName: string]: null | {

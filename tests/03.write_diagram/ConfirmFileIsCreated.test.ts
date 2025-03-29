@@ -3,7 +3,7 @@ import { parseComposeFile } from "../../lib/parse";
 import { ComposeMermaidGenerator } from "../../lib/mermaid";
 import * as fs from "fs";
 import { exec } from "child_process";
-import path from "path";
+import path, { join } from "path";
 
 function findFilesRecursively(dir: string, targetFile: string): string[] {
   const foundFiles: string[] = [];
@@ -40,6 +40,8 @@ function findFilesRecursively(dir: string, targetFile: string): string[] {
 //   });
 // }
 
+const cliPath = join(__dirname, "../../dist/bin/cli.js");
+
 // this test is for checking the examples in examples/awesome-compose directory can be rendered as svg correctly.
 // awesome-compose projects are copied from:
 // https://github.com/docker/awesome-compose
@@ -53,29 +55,62 @@ describe("ConfirmDiagramIsCreated", () => {
     number,
     { outputFilePath: string; svgFilePath: string }
   >();
+  const configFileMap = new Map<
+    number,
+    { outputFilePath: string; svgFilePath: string }
+  >();
 
   testFiles.forEach((filePath, index) => {
-    const outputFilePath = `outputs/diagram_${index}.mmd`;
-    const svgFilePath = `outputs/diagram_${index}.svg`;
+    const outputFilePath = `outputs/03/diagram_${index}.mmd`;
+    const svgFilePath = `outputs/03/diagram_${index}.svg`;
+    const outputConfigFilePath = `outputs/03/config/diagram_${index}.mmd`;
+    const svgConfigFilePath = `outputs/03/config/diagram_${index}.svg`;
 
-    // Store file paths in the map
+    /**
+     * file paths in the map
+     */
     fileMap.set(index, { outputFilePath, svgFilePath });
+    /**
+     * file paths for config option case
+     */
+    configFileMap.set(index, {
+      outputFilePath: outputConfigFilePath,
+      svgFilePath: svgConfigFilePath,
+    });
 
     try {
       const sampleCompose = parseComposeFile(filePath);
 
-      const generator = new ComposeMermaidGenerator(sampleCompose);
-      const diagram = generator.generateMermaidDiagram();
-      writeMermaidDiagramToFile(diagram, outputFilePath);
+      test(`Testing creating diagram of ${filePath} with index: ${index}`, () => {
+        const generator = new ComposeMermaidGenerator(sampleCompose);
+        const diagram = generator.generateMermaidDiagram();
+        writeMermaidDiagramToFile(diagram, outputFilePath);
 
-      test(`Testing creating diagram of ${filePath} with index: ${index}`, async () => {
         expect(fs.existsSync(outputFilePath)).toBeTruthy();
+      });
+
+      test(`Testing creating diagram of ${filePath} with config option with index: ${index}`, (done) => {
+        exec(
+          `node ${cliPath} ${filePath} -c -o ${outputConfigFilePath}`,
+          (error, stdout, stderr) => {
+            console.warn({ stderr, stdout });
+
+            expect(error).toBeNull();
+            expect(stderr).toBe("");
+            expect(stdout).toContain(`was successfully saved`); // made this opaque so that it does not break the test
+
+            done();
+          },
+        );
       });
     } catch (e) {
       console.error(e);
     }
   });
 
+  /**
+   * This is testing whether each produced mmd files can be converted to svg file.
+   */
   afterEach((done) => {
     // Retrieve output and svg file paths using test index
     const currentTestIndex = expect
@@ -85,9 +120,13 @@ describe("ConfirmDiagramIsCreated", () => {
 
     const index = parseInt(currentTestIndex, 10);
     const filePaths = fileMap.get(index);
+    const configFilePaths = configFileMap.get(index);
 
     if (!filePaths) return;
+    if (!configFilePaths) return;
     const { outputFilePath, svgFilePath } = filePaths;
+    const outputConfigFilePath = configFilePaths.outputFilePath;
+    const svgConfigFilePath = configFilePaths.svgFilePath;
 
     exec(
       `npm run custommakesvg ${outputFilePath} ${svgFilePath}`,
@@ -98,6 +137,18 @@ describe("ConfirmDiagramIsCreated", () => {
           return done(error);
         }
         console.log(`Succeeded Command Output: ${stdout}`);
+      },
+    );
+
+    exec(
+      `npm run custommakesvg ${outputConfigFilePath} ${svgConfigFilePath}`,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Error executing command: ${error.message}`);
+          return done(error);
+        }
+        console.log(`Succeeded Command Output Of Config: ${stdout}`);
         done();
       },
     );
