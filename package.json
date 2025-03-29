@@ -16,10 +16,11 @@
     "testwatch": "jest --watchAll",
     "lint": "npx eslint .",
     "fix": "npx eslint . --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "prepublishOnly": "tsc"
   },
   "bin": {
-    "docker-compose-plotter": "./bin/cli.js"
+    "docker-compose-plotter": "./dist/bin/cli.js"
   },
   "keywords": [],
   "author": "Kosuke Takagi",
