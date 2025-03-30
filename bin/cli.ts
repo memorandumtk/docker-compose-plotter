@@ -12,6 +12,8 @@ import { ComposeFileData } from "../types/yaml";
 const convertMmdToSvg = (mmdFilePath: string) => {
   const svgFilePath = mmdFilePath.replace(/\.mmd$/, ".svg");
 
+  // IMPORTANT: to avoid ESM/CommonJS issues, I decided not to install dependencies of mermaid in this package.
+  // This is depends on if you have @mermaid-js/mermaid-cli on your global or local environment.
   const command = `npx mmdc -i ${mmdFilePath} -o ${svgFilePath}`;
   exec(command, (error, stdout, stderr) => {
     if (error) {
@@ -23,16 +25,6 @@ const convertMmdToSvg = (mmdFilePath: string) => {
     }
     console.log(`SVG file successfully created: ${svgFilePath}`);
   });
-
-  // TODO: if possible I want to use mmdc directly
-  // run(mmdFilePath, svgFilePath)
-  //   .then(() => {
-  //     console.log(`SVG file successfully created: ${svgFilePath}`);
-  //   })
-  //   .catch((error) => {
-  //     console.error(`Error executing mmdc: ${error.message}`);
-  //     process.exit(1);
-  //   });
 };
 
 program

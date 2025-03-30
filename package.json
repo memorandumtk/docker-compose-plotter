@@ -12,6 +12,7 @@
     "view": "wslview output_diagram.svg",
     "fortest": "npm run build && npm run exabuild && npm run makesvg",
     "test": "jest",
+    "test:cli": " npm run build && jest --testRegex tests/02.command/",
     "coverage": "jest --coverage",
     "testwatch": "jest --watchAll",
     "lint": "npx eslint .",
@@ -26,16 +27,14 @@
   "author": "Kosuke Takagi",
   "license": "ISC",
   "dependencies": {
-    "@mermaid-js/mermaid-cli": "^11.4.2",
-    "@types/js-yaml": "^4.0.9",
-    "@types/node": "^22.13.5",
     "commander": "^13.1.0",
-    "js-yaml": "^4.1.0",
-    "mermaid": "^11.4.1"
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.23.0",
     "@types/jest": "^29.5.14",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.13.14",
     "eslint": "^9.23.0",
     "globals": "^16.0.0",
     "husky": "^9.1.7",

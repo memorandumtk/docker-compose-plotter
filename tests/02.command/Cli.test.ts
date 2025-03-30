@@ -7,7 +7,6 @@ import * as fs from "fs";
 const cliPath = join(__dirname, "../../dist/bin/cli.js");
 const DEFAULT_FILE = "docker-compose.yml";
 const DEFAULT_OUTPUT_FILE = "diagram.mmd";
-const DEFAULT_OUTPUT_SVG_FILE = "diagram.svg";
 
 describe("CLI Tests Help", () => {
   it("should return help output", (done) => {
@@ -24,12 +23,21 @@ describe("CLI Tests Help", () => {
 /**
  * Check whether mmd file and svg file are correctly created
  */
-const checkFilesAreCorrectlyCreated = (mmdFilePath = DEFAULT_OUTPUT_FILE) => {
+const checkFilesAreCorrectlyCreated = (
+  mmdFilePath = DEFAULT_OUTPUT_FILE,
+  shouldSvgFileGenerated = true,
+) => {
   const svgFilePath = mmdFilePath.replace(/\.mmd$/, ".svg");
   const ifFileExists = fs.existsSync(mmdFilePath);
   expect(ifFileExists).toBeTruthy();
-  const ifSVGFileExists = fs.existsSync(svgFilePath);
-  expect(ifSVGFileExists).toBeTruthy();
+  if (shouldSvgFileGenerated) {
+    const ifSVGFileExists = fs.existsSync(svgFilePath);
+    expect(ifSVGFileExists).toBeTruthy();
+    fs.unlinkSync(svgFilePath); // remove the file for the next test.
+  } else {
+    const ifSVGFileExists = fs.existsSync(svgFilePath);
+    expect(ifSVGFileExists).toBeFalsy();
+  }
 };
 
 describe("CLI Tests for a file 'docker-compose.yml'", () => {
@@ -42,6 +50,19 @@ describe("CLI Tests for a file 'docker-compose.yml'", () => {
         `${DEFAULT_FILE} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
       );
       checkFilesAreCorrectlyCreated();
+      done();
+    });
+  });
+
+  it("should return the output retrived from the default docker-compose.yml file and svg file is not generated", (done) => {
+    exec(`node ${cliPath} ${DEFAULT_FILE} -S`, (error, stdout, stderr) => {
+      console.warn({ stderr, stdout });
+      expect(error).toBeNull();
+      expect(stderr).toBe("");
+      expect(stdout).toContain(
+        `${DEFAULT_FILE} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
+      );
+      checkFilesAreCorrectlyCreated(DEFAULT_OUTPUT_FILE, false);
       done();
     });
   });
@@ -77,6 +98,20 @@ describe("CLI Tests for a specified file", () => {
     });
   });
 
+  it("should return the suceeded output that represents parsing the specified docker file and svg file is not generated", (done) => {
+    const dockerFilePath = "examples/awesome-compose/angular/compose.yaml";
+    exec(`node ${cliPath} ${dockerFilePath} -S`, (error, stdout, stderr) => {
+      console.warn({ stderr, stdout });
+      expect(error).toBeNull();
+      expect(stderr).toBe("");
+      expect(stdout).toContain(
+        `${dockerFilePath} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
+      );
+      checkFilesAreCorrectlyCreated(DEFAULT_OUTPUT_FILE, false);
+      done();
+    });
+  });
+
   it("should return the suceeded output that represents parsing the specified docker file then output to a specified file", (done) => {
     const dockerFilePath = "examples/awesome-compose/angular/compose.yaml";
     const outputFilePath = "outputs/02/angular-1.mmd";
@@ -90,6 +125,24 @@ describe("CLI Tests for a specified file", () => {
           `${dockerFilePath} was successfully saved to ${outputFilePath}`,
         );
         checkFilesAreCorrectlyCreated(outputFilePath);
+        done();
+      },
+    );
+  });
+
+  it("should return the suceeded output that represents parsing the specified docker file then output to a specified file and svg file is not generated", (done) => {
+    const dockerFilePath = "examples/awesome-compose/angular/compose.yaml";
+    const outputFilePath = "outputs/02/angular-1.mmd";
+    exec(
+      `node ${cliPath} ${dockerFilePath} -o ${outputFilePath} -S`,
+      (error, stdout, stderr) => {
+        console.warn({ stderr, stdout });
+        expect(error).toBeNull();
+        expect(stderr).toBe("");
+        expect(stdout).toContain(
+          `${dockerFilePath} was successfully saved to ${outputFilePath}`,
+        );
+        checkFilesAreCorrectlyCreated(outputFilePath, false);
         done();
       },
     );
@@ -110,6 +163,19 @@ describe("CLI tests for specified docker config", () => {
     });
   });
 
+  it("should return the output retrived from the default docker-compose.yml file with config option and svg file is not generated", (done) => {
+    exec(`node ${cliPath} -c -S`, (error, stdout, stderr) => {
+      console.warn({ stderr, stdout });
+      expect(error).toBeNull();
+      expect(stderr).toBe("");
+      expect(stdout).toContain(
+        `Config of Default file: ${DEFAULT_FILE} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
+      );
+      checkFilesAreCorrectlyCreated(DEFAULT_OUTPUT_FILE, false);
+      done();
+    });
+  });
+
   it("should return the suceeded output that represents parsing the specified docker file with config option", (done) => {
     const dockerFilePath = "examples/awesome-compose/angular/compose.yaml";
     exec(`node ${cliPath} ${dockerFilePath} -c`, (error, stdout, stderr) => {
@@ -120,6 +186,20 @@ describe("CLI tests for specified docker config", () => {
         `Config of ${dockerFilePath} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
       );
       checkFilesAreCorrectlyCreated();
+      done();
+    });
+  });
+
+  it("should return the suceeded output that represents parsing the specified docker file with config option and svg file is not generated", (done) => {
+    const dockerFilePath = "examples/awesome-compose/angular/compose.yaml";
+    exec(`node ${cliPath} ${dockerFilePath} -c -S`, (error, stdout, stderr) => {
+      console.warn({ stderr, stdout });
+      expect(error).toBeNull();
+      expect(stderr).toBe("");
+      expect(stdout).toContain(
+        `Config of ${dockerFilePath} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
+      );
+      checkFilesAreCorrectlyCreated(DEFAULT_OUTPUT_FILE, false);
       done();
     });
   });
@@ -137,6 +217,24 @@ describe("CLI tests for specified docker config", () => {
           `Config of ${dockerFilePath} was successfully saved to ${outputFilePath}`,
         );
         checkFilesAreCorrectlyCreated(outputFilePath);
+        done();
+      },
+    );
+  });
+
+  it("should return the suceeded output that represents parsing the specified docker file with config option then output to a specified file and svg file not generated", (done) => {
+    const dockerFilePath = "examples/awesome-compose/angular/compose.yaml";
+    const outputFilePath = "outputs/02/angular-2.mmd";
+    exec(
+      `node ${cliPath} ${dockerFilePath} -c -o ${outputFilePath} -S`,
+      (error, stdout, stderr) => {
+        console.warn({ stderr, stdout });
+        expect(error).toBeNull();
+        expect(stderr).toBe("");
+        expect(stdout).toContain(
+          `Config of ${dockerFilePath} was successfully saved to ${outputFilePath}`,
+        );
+        checkFilesAreCorrectlyCreated(outputFilePath, false);
         done();
       },
     );

@@ -111,7 +111,7 @@ describe("ConfirmDiagramIsCreated", () => {
   /**
    * This is testing whether each produced mmd files can be converted to svg file.
    */
-  afterEach((done) => {
+  afterEach(() => {
     // Retrieve output and svg file paths using test index
     const currentTestIndex = expect
       .getState()
@@ -128,29 +128,35 @@ describe("ConfirmDiagramIsCreated", () => {
     const outputConfigFilePath = configFilePaths.outputFilePath;
     const svgConfigFilePath = configFilePaths.svgFilePath;
 
-    exec(
-      `npm run custommakesvg ${outputFilePath} ${svgFilePath}`,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      (error, stdout, stderr) => {
-        if (error) {
-          console.error(`Error executing command: ${error.message}`);
-          return done(error);
-        }
-        console.log(`Succeeded Command Output: ${stdout}`);
-      },
-    );
+    expect(fs.existsSync(outputFilePath)).toBe(true);
+    expect(fs.existsSync(svgFilePath)).toBe(true);
 
-    exec(
-      `npm run custommakesvg ${outputConfigFilePath} ${svgConfigFilePath}`,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      (error, stdout, stderr) => {
-        if (error) {
-          console.error(`Error executing command: ${error.message}`);
-          return done(error);
-        }
-        console.log(`Succeeded Command Output Of Config: ${stdout}`);
-        done();
-      },
-    );
+    expect(fs.existsSync(outputConfigFilePath)).toBe(true);
+    expect(fs.existsSync(svgConfigFilePath)).toBe(true);
+
+    // exec(
+    //   `npm run custommakesvg ${outputFilePath} ${svgFilePath}`,
+    //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    //   (error, stdout, stderr) => {
+    //     if (error) {
+    //       console.error(`Error executing command: ${error.message}`);
+    //       return done(error);
+    //     }
+    //     console.log(`Succeeded Command Output: ${stdout}`);
+    //   },
+    // );
+    //
+    // exec(
+    //   `npm run custommakesvg ${outputConfigFilePath} ${svgConfigFilePath}`,
+    //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    //   (error, stdout, stderr) => {
+    //     if (error) {
+    //       console.error(`Error executing command: ${error.message}`);
+    //       return done(error);
+    //     }
+    //     console.log(`Succeeded Command Output Of Config: ${stdout}`);
+    //     done();
+    //   },
+    // );
   });
 });
