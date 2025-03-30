@@ -6,11 +6,44 @@ import { writeMermaidDiagramToFile } from "../lib/mermaid/write";
 import { program } from "commander";
 import { ComposeFileData } from "../types/yaml";
 
+/**
+ * Convert MMD file content to SVG using Mermaid command
+ */
+const convertMmdToSvg = (mmdFilePath: string) => {
+  const svgFilePath = mmdFilePath.replace(/\.mmd$/, ".svg");
+
+  const command = `npx mmdc -i ${mmdFilePath} -o ${svgFilePath}`;
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error executing mmdc: ${error.message}`);
+      process.exit(1);
+    }
+    if (stderr) {
+      console.error(`stderr: ${stderr}`);
+    }
+    console.log(`SVG file successfully created: ${svgFilePath}`);
+  });
+
+  // TODO: if possible I want to use mmdc directly
+  // run(mmdFilePath, svgFilePath)
+  //   .then(() => {
+  //     console.log(`SVG file successfully created: ${svgFilePath}`);
+  //   })
+  //   .catch((error) => {
+  //     console.error(`Error executing mmdc: ${error.message}`);
+  //     process.exit(1);
+  //   });
+};
+
 program
   .version("1.0.0")
   .option(
     "-c, --config",
     "use docker compose config command instead of reading a config file",
+  )
+  .option(
+    "-S, --not-produce-svg-file",
+    "use mmdc command to produce svg file from mmd file, default provide a svg file",
   )
   .option(
     "-o, --output <path>",
@@ -22,7 +55,10 @@ program
     "path to docker-compose.yml, reading 'docker-compose.yml' by default",
   )
   .action(
-    (passedFile: string, options: { config: boolean; output: string }) => {
+    (
+      passedFile: string,
+      options: { config: boolean; output: string; notProduceSvgFile: boolean },
+    ) => {
       /**
        * process diagram
        */
@@ -30,6 +66,10 @@ program
         const generatorClass = new ComposeMermaidGenerator(composeObj);
         const diagram = generatorClass.generateMermaidDiagram();
         const result = writeMermaidDiagramToFile(diagram, options.output);
+
+        if (!options.notProduceSvgFile) {
+          convertMmdToSvg(options.output);
+        }
         return result;
       };
 

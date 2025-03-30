@@ -2,10 +2,12 @@ import { exec } from "child_process";
 import { mkdtempSync, rmdirSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+import * as fs from "fs";
 
-const cliPath = join(__dirname, "../../dist/bin/cli.js"); // Adjust path if needed
+const cliPath = join(__dirname, "../../dist/bin/cli.js");
 const DEFAULT_FILE = "docker-compose.yml";
 const DEFAULT_OUTPUT_FILE = "diagram.mmd";
+const DEFAULT_OUTPUT_SVG_FILE = "diagram.svg";
 
 describe("CLI Tests Help", () => {
   it("should return help output", (done) => {
@@ -19,6 +21,17 @@ describe("CLI Tests Help", () => {
   });
 });
 
+/**
+ * Check whether mmd file and svg file are correctly created
+ */
+const checkFilesAreCorrectlyCreated = (mmdFilePath = DEFAULT_OUTPUT_FILE) => {
+  const svgFilePath = mmdFilePath.replace(/\.mmd$/, ".svg");
+  const ifFileExists = fs.existsSync(mmdFilePath);
+  expect(ifFileExists).toBeTruthy();
+  const ifSVGFileExists = fs.existsSync(svgFilePath);
+  expect(ifSVGFileExists).toBeTruthy();
+};
+
 describe("CLI Tests for a file 'docker-compose.yml'", () => {
   it("should return the output retrived from the default docker-compose.yml file", (done) => {
     exec(`node ${cliPath} ${DEFAULT_FILE}`, (error, stdout, stderr) => {
@@ -28,6 +41,7 @@ describe("CLI Tests for a file 'docker-compose.yml'", () => {
       expect(stdout).toContain(
         `${DEFAULT_FILE} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
       );
+      checkFilesAreCorrectlyCreated();
       done();
     });
   });
@@ -58,6 +72,7 @@ describe("CLI Tests for a specified file", () => {
       expect(stdout).toContain(
         `${dockerFilePath} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
       );
+      checkFilesAreCorrectlyCreated();
       done();
     });
   });
@@ -74,6 +89,7 @@ describe("CLI Tests for a specified file", () => {
         expect(stdout).toContain(
           `${dockerFilePath} was successfully saved to ${outputFilePath}`,
         );
+        checkFilesAreCorrectlyCreated(outputFilePath);
         done();
       },
     );
@@ -89,6 +105,7 @@ describe("CLI tests for specified docker config", () => {
       expect(stdout).toContain(
         `Config of Default file: ${DEFAULT_FILE} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
       );
+      checkFilesAreCorrectlyCreated();
       done();
     });
   });
@@ -102,6 +119,7 @@ describe("CLI tests for specified docker config", () => {
       expect(stdout).toContain(
         `Config of ${dockerFilePath} was successfully saved to ${DEFAULT_OUTPUT_FILE}`,
       );
+      checkFilesAreCorrectlyCreated();
       done();
     });
   });
@@ -118,6 +136,7 @@ describe("CLI tests for specified docker config", () => {
         expect(stdout).toContain(
           `Config of ${dockerFilePath} was successfully saved to ${outputFilePath}`,
         );
+        checkFilesAreCorrectlyCreated(outputFilePath);
         done();
       },
     );
