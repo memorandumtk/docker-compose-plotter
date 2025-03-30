@@ -16,13 +16,13 @@ const convertMmdToSvg = (mmdFilePath) => {
   const command = `npx mmdc -i ${mmdFilePath} -o ${svgFilePath}`;
   (0, child_process_1.exec)(command, (error, stdout, stderr) => {
     if (error) {
-      console.error(`Error executing mmdc: ${error.message}`);
+      console.error(`\nError executing mmdc: ${error.message}\n\n`);
       process.exit(1);
     }
     if (stderr) {
-      console.error(`stderr: ${stderr}`);
+      console.error(`\nstderr: ${stderr}\n\n`);
     }
-    console.log(`SVG file successfully created: ${svgFilePath}`);
+    console.log(`\nSVG file successfully created: ${svgFilePath}\n\n`);
   });
 };
 commander_1.program
@@ -67,21 +67,21 @@ commander_1.program
         : "docker compose config";
       (0, child_process_1.exec)(command, (error, stdout, stderr) => {
         if (error) {
-          console.error(`Error executing command: ${error.message}`);
+          console.error(`\nError executing command: ${error.message}\n\n`);
           process.exit(1);
         }
         if (stderr) {
-          console.error(`stderr: ${stderr}`);
+          console.error(`\nstderr: ${stderr}\n\n`);
           process.exit(1);
         }
         try {
           const composeObj = (0, parse_1.parseComposeConfigStdOut)(stdout);
           processDiagram(composeObj);
           process.stdout.write(
-            `Config of ${passedFile ? passedFile : "Default file: docker-compose.yml"} was successfully saved to ${options.output} `,
+            `\nConfig of ${passedFile ? passedFile : "Default file: docker-compose.yml"} was successfully saved to ${options.output}\n\n`,
           );
         } catch (err) {
-          console.error(err.message);
+          console.error(`\n${err.message}\n\n`);
           process.exit(1);
         }
       });
@@ -90,10 +90,10 @@ commander_1.program
         const composeObj = (0, parse_1.parseComposeFile)(file);
         processDiagram(composeObj);
         process.stdout.write(
-          `${passedFile ? passedFile : "Default file: docker-compose.yml"} was successfully saved to ${options.output} `,
+          `\n${passedFile ? passedFile : "Default file: docker-compose.yml"} was successfully saved to ${options.output}\n\n`,
         );
       } catch (err) {
-        console.error(err.message);
+        console.error(`\n${err.message}\n\n`);
         process.exit(1);
       }
     }
