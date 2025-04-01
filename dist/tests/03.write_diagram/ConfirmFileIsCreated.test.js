@@ -1,73 +1,15 @@
-"use strict";
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        var desc = Object.getOwnPropertyDescriptor(m, k);
-        if (
-          !desc ||
-          ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)
-        ) {
-          desc = {
-            enumerable: true,
-            get: function () {
-              return m[k];
-            },
-          };
-        }
-        Object.defineProperty(o, k2, desc);
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, "default", { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o["default"] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  (function () {
-    var ownKeys = function (o) {
-      ownKeys =
-        Object.getOwnPropertyNames ||
-        function (o) {
-          var ar = [];
-          for (var k in o)
-            if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-          return ar;
-        };
-      return ownKeys(o);
-    };
-    return function (mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null)
-        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
-          if (k[i] !== "default") __createBinding(result, mod, k[i]);
-      __setModuleDefault(result, mod);
-      return result;
-    };
-  })();
-Object.defineProperty(exports, "__esModule", { value: true });
-const write_1 = require("../../lib/mermaid/write");
-const parse_1 = require("../../lib/parse");
-const mermaid_1 = require("../../lib/mermaid");
-const fs = __importStar(require("fs"));
-const child_process_1 = require("child_process");
-const path_1 = __importStar(require("path"));
+import { writeMermaidDiagramToFile } from "../../lib/mermaid/write";
+import { parseComposeFile } from "../../lib/parse";
+import { ComposeMermaidGenerator } from "../../lib/mermaid";
+import * as fs from "fs";
+import { exec } from "child_process";
+import path, { join } from "path";
 function findFilesRecursively(dir, targetFile) {
   const foundFiles = [];
   function searchDirectory(directory) {
     const entries = fs.readdirSync(directory, { withFileTypes: true });
     for (const entry of entries) {
-      const fullPath = path_1.default.join(directory, entry.name);
+      const fullPath = path.join(directory, entry.name);
       if (entry.isDirectory()) {
         searchDirectory(fullPath); // Recursive call
       } else if (entry.name === targetFile) {
@@ -92,7 +34,7 @@ function findFilesRecursively(dir, targetFile) {
 //     });
 //   });
 // }
-const cliPath = (0, path_1.join)(__dirname, "../../dist/bin/cli.js");
+const cliPath = join(__dirname, "../../dist/bin/cli.js");
 // this test is for checking the examples in examples/awesome-compose directory can be rendered as svg correctly.
 // awesome-compose projects are copied from:
 // https://github.com/docker/awesome-compose
@@ -120,15 +62,15 @@ describe("ConfirmDiagramIsCreated", () => {
       svgFilePath: svgConfigFilePath,
     });
     try {
-      const sampleCompose = (0, parse_1.parseComposeFile)(filePath);
+      const sampleCompose = parseComposeFile(filePath);
       test(`Testing creating diagram of ${filePath} with index: ${index}`, () => {
-        const generator = new mermaid_1.ComposeMermaidGenerator(sampleCompose);
+        const generator = new ComposeMermaidGenerator(sampleCompose);
         const diagram = generator.generateMermaidDiagram();
-        (0, write_1.writeMermaidDiagramToFile)(diagram, outputFilePath);
+        writeMermaidDiagramToFile(diagram, outputFilePath);
         expect(fs.existsSync(outputFilePath)).toBeTruthy();
       });
       test(`Testing creating diagram of ${filePath} with config option with index: ${index}`, (done) => {
-        (0, child_process_1.exec)(
+        exec(
           `node ${cliPath} ${filePath} -c -o ${outputConfigFilePath}`,
           (error, stdout, stderr) => {
             console.warn({ stderr, stdout });

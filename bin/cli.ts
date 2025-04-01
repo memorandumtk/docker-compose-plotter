@@ -1,30 +1,42 @@
 #!/usr/bin/env node
-import { parseComposeFile, parseComposeConfigStdOut } from "../lib/parse";
+import {
+  parseComposeFile,
+  parseComposeConfigStdOut,
+} from "../lib/parse/index.js";
 import { exec } from "child_process";
-import { ComposeMermaidGenerator } from "../lib/mermaid";
-import { writeMermaidDiagramToFile } from "../lib/mermaid/write";
+import { ComposeMermaidGenerator } from "../lib/mermaid/index.js";
+import { writeMermaidDiagramToFile } from "../lib/mermaid/write.js";
 import { program } from "commander";
 import { ComposeFileData } from "../types/yaml";
+import { run } from "@mermaid-js/mermaid-cli";
 
 /**
  * Convert MMD file content to SVG using Mermaid command
  */
-const convertMmdToSvg = (mmdFilePath: string) => {
+const convertMmdToSvg = async (mmdFilePath: string) => {
   const svgFilePath = mmdFilePath.replace(/\.mmd$/, ".svg");
 
-  // IMPORTANT: to avoid ESM/CommonJS issues, I decided not to install dependencies of mermaid in this package.
-  // This is depends on if you have @mermaid-js/mermaid-cli on your global or local environment.
-  const command = `npx mmdc -i ${mmdFilePath} -o ${svgFilePath}`;
-  exec(command, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`\nError executing mmdc: ${error.message}\n\n`);
-      process.exit(1);
-    }
-    if (stderr) {
-      console.error(`\nstderr: ${stderr}\n\n`);
-    }
-    console.log(`\nSVG file successfully created: ${svgFilePath}\n\n`);
-  });
+  try {
+    // @ts-expect-error svgFilePath ends svg.
+    await run(mmdFilePath, svgFilePath);
+  } catch (error) {
+    console.error(`\nError executing mermaid CLI API: ${error}\n\n`);
+    process.exit(1);
+  }
+  //
+  // // IMPORTANT: to avoid ESM/CommonJS issues, I decided not to install dependencies of mermaid in this package.
+  // // This is depends on if you have @mermaid-js/mermaid-cli on your global or local environment.
+  // const command = `npx mmdc -i ${mmdFilePath} -o ${svgFilePath}`;
+  // exec(command, (error, stdout, stderr) => {
+  //   if (error) {
+  //     console.error(`\nError executing mmdc: ${error.message}\n\n`);
+  //     process.exit(1);
+  //   }
+  //   if (stderr) {
+  //     console.error(`\nstderr: ${stderr}\n\n`);
+  //   }
+  //   console.log(`\nSVG file successfully created: ${svgFilePath}\n\n`);
+  // });
 };
 
 program

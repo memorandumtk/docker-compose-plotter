@@ -1,31 +1,42 @@
 #!/usr/bin/env node
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const parse_1 = require("../lib/parse");
-const child_process_1 = require("child_process");
-const mermaid_1 = require("../lib/mermaid");
-const write_1 = require("../lib/mermaid/write");
-const commander_1 = require("commander");
+import {
+  parseComposeFile,
+  parseComposeConfigStdOut,
+} from "../lib/parse/index.js";
+import { exec } from "child_process";
+import { ComposeMermaidGenerator } from "../lib/mermaid/index.js";
+import { writeMermaidDiagramToFile } from "../lib/mermaid/write.js";
+import { program } from "commander";
+import { run } from "@mermaid-js/mermaid-cli";
 /**
  * Convert MMD file content to SVG using Mermaid command
  */
-const convertMmdToSvg = (mmdFilePath) => {
+const convertMmdToSvg = async (mmdFilePath) => {
   const svgFilePath = mmdFilePath.replace(/\.mmd$/, ".svg");
-  // IMPORTANT: to avoid ESM/CommonJS issues, I decided not to install dependencies of mermaid in this package.
-  // This is depends on if you have @mermaid-js/mermaid-cli on your global or local environment.
-  const command = `npx mmdc -i ${mmdFilePath} -o ${svgFilePath}`;
-  (0, child_process_1.exec)(command, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`\nError executing mmdc: ${error.message}\n\n`);
-      process.exit(1);
-    }
-    if (stderr) {
-      console.error(`\nstderr: ${stderr}\n\n`);
-    }
+  try {
+    // @ts-expect-error svgFilePath ends svg.
+    await run(mmdFilePath, svgFilePath);
     console.log(`\nSVG file successfully created: ${svgFilePath}\n\n`);
-  });
+  } catch (error) {
+    console.error(`\nError executing mermaid CLI API: ${error}\n\n`);
+    process.exit(1);
+  }
+  //
+  // // IMPORTANT: to avoid ESM/CommonJS issues, I decided not to install dependencies of mermaid in this package.
+  // // This is depends on if you have @mermaid-js/mermaid-cli on your global or local environment.
+  // const command = `npx mmdc -i ${mmdFilePath} -o ${svgFilePath}`;
+  // exec(command, (error, stdout, stderr) => {
+  //   if (error) {
+  //     console.error(`\nError executing mmdc: ${error.message}\n\n`);
+  //     process.exit(1);
+  //   }
+  //   if (stderr) {
+  //     console.error(`\nstderr: ${stderr}\n\n`);
+  //   }
+  //   console.log(`\nSVG file successfully created: ${svgFilePath}\n\n`);
+  // });
 };
-commander_1.program
+program
   .version("1.0.0")
   .option(
     "-c, --config",
@@ -49,12 +60,9 @@ commander_1.program
      * process diagram
      */
     const processDiagram = (composeObj) => {
-      const generatorClass = new mermaid_1.ComposeMermaidGenerator(composeObj);
+      const generatorClass = new ComposeMermaidGenerator(composeObj);
       const diagram = generatorClass.generateMermaidDiagram();
-      const result = (0, write_1.writeMermaidDiagramToFile)(
-        diagram,
-        options.output,
-      );
+      const result = writeMermaidDiagramToFile(diagram, options.output);
       if (!options.notProduceSvgFile) {
         convertMmdToSvg(options.output);
       }
@@ -65,7 +73,7 @@ commander_1.program
       const command = file
         ? `docker compose -f ${file} config`
         : "docker compose config";
-      (0, child_process_1.exec)(command, (error, stdout, stderr) => {
+      exec(command, (error, stdout, stderr) => {
         if (error) {
           console.error(`\nError executing command: ${error.message}\n\n`);
           process.exit(1);
@@ -75,7 +83,7 @@ commander_1.program
           process.exit(1);
         }
         try {
-          const composeObj = (0, parse_1.parseComposeConfigStdOut)(stdout);
+          const composeObj = parseComposeConfigStdOut(stdout);
           processDiagram(composeObj);
           process.stdout.write(
             `\nConfig of ${passedFile ? passedFile : "Default file: docker-compose.yml"} was successfully saved to ${options.output}\n\n`,
@@ -87,7 +95,7 @@ commander_1.program
       });
     } else {
       try {
-        const composeObj = (0, parse_1.parseComposeFile)(file);
+        const composeObj = parseComposeFile(file);
         processDiagram(composeObj);
         process.stdout.write(
           `\n${passedFile ? passedFile : "Default file: docker-compose.yml"} was successfully saved to ${options.output}\n\n`,
@@ -98,4 +106,4 @@ commander_1.program
       }
     }
   });
-commander_1.program.parse();
+program.parse();
